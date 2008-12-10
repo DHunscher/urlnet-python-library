@@ -90,8 +90,18 @@ class TechnoratiTree(UrlTree):
                                  _netItemClass = _netItemClass)
             else:
                 raise Exception, 'no Technorati API specified'
+
             # We need to make our technorati developer key available...
-            self.SetProperty('technoratiKey',_technoratiKey)            
+            tk = _technoratiKey
+            if tk == None:
+                tk = urlutils.GetConfigValue('technoratiKey')
+                
+            # remove quotes, in case urlnet coder thought they were necessary
+            if (tk[0] == '"' and tk[-1] == '"') or (tk[0] == "'" and tk[-1] == "'"):
+                tk = tk[1:-1]
+            
+            # save it to a property of the object    
+            self.SetProperty('technoratiKey',tk)            
 
         except Exception, e:
             self.SetLastError('in __init__: ' + str(e))
@@ -100,10 +110,10 @@ class TechnoratiTree(UrlTree):
 
 def main():
     # dir to write to
-    workingDir=GetConfigValue('workingDir')
+    workingDir =urlutils.GetConfigValue('workingDir')
     log.logging=True
     myLog = Log('main')
-    myTechnoratiKey = GetConfigValue('technoratiKey')
+    myTechnoratiKey = '13083c881893e0023f4a6f6e42d8c770'
     
     x = TechnoratiTree(_maxLevel=4,
                        _technoratiApi=TECHNORATI_COSMOS_API,

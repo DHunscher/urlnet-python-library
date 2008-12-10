@@ -400,8 +400,7 @@ def WriteGuessDomainArc(fromIdx,toIdx,frequency,net,args):
 if __name__ == '__main__':
 
     # dir to write to
-    workingDir =GetConfigValue('workingDir')
-    print workingDir
+    workingDir =urlutils.GetConfigValue('workingDir')
     name = """alice
     bob"""
     name = RemoveNonPrintableChars(name)
