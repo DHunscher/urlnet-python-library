@@ -1,6 +1,10 @@
+URLNET PYTHON LIBRARY README FILE
+VERSION 0.81
+
 0	DEPENDENCIES
 	- Python 2.5 (http://www.python.org/download/releases/2.5/)
-	- 4Suite XML Library (http://4suite.org/?xslt=downloads.xslt)
+	- 4Suite XML Library (http://4suite.org/?xslt=downloads.xslt) 
+	        only needed for Technorati-related classes and examples.
 
 4Suite is needed only for the Technorati API example.
 
@@ -15,7 +19,7 @@ Python 5 is required—my apologies to the die-hards.
 Unzip the distribution file to a location of your choice. It will create a 
 tree with the following structure.
 
-urlnet-v0.7
+urlnet-v0.81
 	urlnet
 	examples
 	doc
@@ -55,6 +59,7 @@ the working directory.
 1.5	TEST THE INSTALL
 
 From your operating system shell’s command line, enter the command
+
 python urltree1.py
 
 It should take a short while to run, after which you should find a small Pajek 
@@ -66,6 +71,23 @@ Numerous example programs are provided, illustrating many of the features of
 the library. Most are only a few lines long, making them easy to understand and 
 also demonstrating the power of the library.  Longer programs show more 
 complicated scenarios, such as setting up a production batch program that 
-runs periodically to retrieve the current state of a URL network.
+runs periodically to retrieve the current state of a URL network. All examples
+are described in the manual.
 
+3	NEW THIS RELEASE
+
+0.71 (prior release): This release contains a minor bug fix that is important 
+for those running on Unix or Linux platforms. Without this fix, the urlnet.cfg 
+file will not be found on these platforms. The one-line change is in urlutils.py. 
+
+Another change: the Technorati API key placeholder in the urlnet.cfg file is 
+incorrectly wrapped in single quotes, causing the technorati1.py sample program
+to fail even if the placeholder value is replaced by a valid key. The quotes have 
+been removed in this release.
+
+0.81: urlnet.cfg is now sought in the current directory prior to searching the 
+folders listed in the PATH environment variable. This change is found in urlutils.py.
+TechnoratiTree (found in technoratitree.py) now removes single and double quotes 
+erroneously wrapping the Technorati API key, and checks for it in urlnet.cfg if 
+the passed value for the key is the Python constant None.
 
