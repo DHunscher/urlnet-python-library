@@ -2,9 +2,11 @@
 
 = Introduction =
 
-This code repository is currently under construction. When complete, it will be the new home of the {{{UrlNet}}} Python Library for network analysis data collection on the Web.
+This code repository is currently under construction. When complete, it will be the new home of the UrlNet Python Library for network analysis data collection on the Web.
 
 
 = Details =
 
-For the time being, information about the {{{UrlNet}}} Python Library can be found at [http://www.southwindpress.com/urlnet/].
+For the time being, information about the UrlNet Python Library can be found at [http://www.southwindpress.com/urlnet/]. 
+
+You can now download the latest ZIP package from this repository at the URL [http://code.google.com/p/urlnet-python-library/source/browse/trunk/latest-download/urlnet-v0.81.zip].
