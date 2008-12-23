@@ -59,7 +59,13 @@ def read_config_file():
     filename = URLNET_CFG
     search_path=os.environ['PATH']
     paths = ['.',]
-    home = os.environ['HOME']
+    # allow for the possibility that there is no HOME env variable
+    home = None
+    try:
+        home = os.environ['HOME']
+    except Exception, e:
+        pass
+    # 
     if home != None and len(home) > 0:
         paths.append(home)
     paths = paths + split(search_path, pathsep)
@@ -209,7 +215,7 @@ def BuildListOfItemIndicesWithPropertyValueLookup(item,net,level,args):
         raise Exception, errPrefix + 'second item in args must be a dictionary'
     try:
         value = item.GetProperty(args[0])
-        if value == None:
+        if value is None:
             if len(args) > 2:
                 value = args[2]
             else:
@@ -311,13 +317,13 @@ def WriteGuessVertex(item,net,level,args):
             for attrName, attrType in additionalGuessAttrs:
                 value = item.GetProperty(attrName)
                 if attrType.upper() in ('VARCHAR','CHAR','DATE','TIME','DATETIME','BOOLEAN'):
-                    if value == None:
+                    if value is None:
                         value = ''
                     else: # DOUBLE, INT, TINYINT, FLOAT, BIGINT
                         value = str(value)
                     FILE.write(',"%s"' % (value))
                 else:
-                    if value == None:
+                    if value is None:
                         value = '0'
                     else:
                         value = str(value)
@@ -359,7 +365,7 @@ def WriteGuessDomainVertex(item,net,level,args):
         if additionalDomainAttrs != None:
             for attrName, attrType in additionalDomainAttrs:
                 value = item.GetProperty(attrName)
-                if value == None:
+                if value is None:
                     if ' DEFAULT ' in attrType.upper():
                         value = ''
                     elif attrType.upper() in ('FLOAT','DOUBLE'):
@@ -400,7 +406,7 @@ def WriteGuessDomainArc(fromIdx,toIdx,frequency,net,args):
 if __name__ == '__main__':
 
     # dir to write to
-    workingDir =urlutils.GetConfigValue('workingDir')
+    workingDir =GetConfigValue('workingDir')
     name = """alice
     bob"""
     name = RemoveNonPrintableChars(name)
