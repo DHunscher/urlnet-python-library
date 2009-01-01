@@ -30,6 +30,8 @@ from os.path import exists, join, abspath
 from os import pathsep, environ
 from string import split
 
+# for saveTree and loadTree
+import cPickle as pickle
 
 from object import Object
 from url import Url, DomainFromHostName
@@ -397,6 +399,28 @@ def WriteGuessDomainArc(fromIdx,toIdx,frequency,net,args):
         log.Write('Exception in WriteGuessDomainArc: %s' % (str(e)))
         raise
 
+def saveTree(tree,path):
+    log = Log('saveTree','path=%s' % str(path) )
+    try:
+        fo=open(path, 'wb')
+        pickle.dump(tree,fo,-1)
+        fo.close()
+    except Exception, e:
+        log.Write('Exception in saveTree: %s' % (str(e)))
+        raise
+        
+     
+def loadTree(path):
+    log = Log('loadTree','path=%s' % str(path) )
+    try:
+        fi=open(path, 'rb')
+        tree = pickle.load(fi)
+        fi.close()
+        return tree
+    except Exception, e:
+        log.Write('Exception in loadTree: %s' % (str(e)))
+        raise
+        
      
 ###################################################################
 ###################################################################
