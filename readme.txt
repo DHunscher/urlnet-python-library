@@ -1,25 +1,27 @@
 URLNET PYTHON LIBRARY README FILE
-VERSION 0.81
+VERSION 0.82
+03 JANUARY 2009
 
 0	DEPENDENCIES
 	- Python 2.5 (http://www.python.org/download/releases/2.5/)
-	- 4Suite XML Library (http://4suite.org/?xslt=downloads.xslt) 
-	        only needed for Technorati-related classes and examples.
+	- 4Suite XML Library (http://4suite.org/?xslt=downloads.xslt)
 
-4Suite is needed only for the Technorati API example.
+4Suite is needed for a few example programs; you'll get error messages
+when you need it.
 
 1	INSTALLING THE LIBRARY
 
 At present there is no automated install, but the procedure is very simple.  
 It assumes you have already installed Python 5 and downloaded the UrlNet zip file.  
-Python 5 is required—my apologies to the die-hards.
+Python 2.5 or later is required. My apologies to the die-hards using earlier 
+versions.
 
 1.1	UNZIP THE DISTRIBUTION
 
 Unzip the distribution file to a location of your choice. It will create a 
 tree with the following structure.
 
-urlnet-v0.81
+urlnet-v0.82
 	urlnet
 	examples
 	doc
@@ -28,13 +30,14 @@ conf
 The version number in the name of the root directory may be different from 
 what is shown here.
 
-1.2	COPY THE LIBRARY DIRECTORY TO YOUR PYTHON INSTALLATION’S 
+1.2	COPY THE LIBRARY DIRECTORY TO YOUR PYTHON INSTALLATION'S 
 	LIB/SITE-PACKAGES DIRECTORY
 
 The directory referred to here is the urlnet subdirectory under the 
 urlnet-v1.0 directory, which in turn is found under wherever you unzipped 
 the distribution file. You can actually put it anywhere in the Python path 
-(found in the PYTHONPATH environment variable). The Python installation’s 
+(possibly found in the PYTHONPATH environment variable, or in Unix and Linux,
+by implication from the command 'which python'). The Python installation's 
 Lib/site-packages directory is the normal place to keep third-party modules, 
 which is why I am recommending it here.
 
@@ -53,12 +56,12 @@ editing, you might as well take care of it.
 1.4	COPY THE EXAMPLE PROGRAMS TO A LOCATION OF YOUR CHOICE
 
 The working directory you set in urlnet.cfg is a good starting point. 
-If you copy the examples there, you won’t have to modify any code to override 
+If you copy the examples there, you won't have to modify any code to override 
 the working directory.
 
 1.5	TEST THE INSTALL
 
-From your operating system shell’s command line, enter the command
+From your operating system shell's command line, enter the command
 
 python urltree1.py
 
@@ -74,9 +77,17 @@ complicated scenarios, such as setting up a production batch program that
 runs periodically to retrieve the current state of a URL network. All examples
 are described in the manual.
 
-3	NEW THIS RELEASE
+3	RELEASE NOTES
 
-0.71 (prior release): This release contains a minor bug fix that is important 
+0.82: Added urlutils functions for persisting (saving and loading) networks.
+
+0.81: urlnet.cfg is now sought in the current directory prior to searching the 
+folders listed in the PATH environment variable. This change is found in urlutils.py.
+TechnoratiTree (found in technoratitree.py) now removes single and double quotes 
+erroneously wrapping the Technorati API key, and checks for it in urlnet.cfg if 
+the passed value for the key is the Python constant None.
+
+0.71: This release contains a minor bug fix that is important 
 for those running on Unix or Linux platforms. Without this fix, the urlnet.cfg 
 file will not be found on these platforms. The one-line change is in urlutils.py. 
 
@@ -84,10 +95,4 @@ Another change: the Technorati API key placeholder in the urlnet.cfg file is
 incorrectly wrapped in single quotes, causing the technorati1.py sample program
 to fail even if the placeholder value is replaced by a valid key. The quotes have 
 been removed in this release.
-
-0.81: urlnet.cfg is now sought in the current directory prior to searching the 
-folders listed in the PATH environment variable. This change is found in urlutils.py.
-TechnoratiTree (found in technoratitree.py) now removes single and double quotes 
-erroneously wrapping the Technorati API key, and checks for it in urlnet.cfg if 
-the passed value for the key is the Python constant None.
 
