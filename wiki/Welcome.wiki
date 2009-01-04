@@ -9,6 +9,6 @@ This code repository is the home of the UrlNet Python Library for network analys
 
 For the time being, information about the UrlNet Python Library can be found at [http://www.southwindpress.com/urlnet/]. 
 
-||Latest ZIP package||[http://code.google.com/p/urlnet-python-library/source/browse/trunk/latest-download/]||
-||Readme file||[http://code.google.com/p/urlnet-python-library/source/browse/trunk/readme.txt]||
-||Manual (PDF)||[http://code.google.com/p/urlnet-python-library/source/browse/trunk/doc/UrlNetUserGuide.doc]|| 
+||[http://code.google.com/p/urlnet-python-library/source/browse/trunk/latest-download/ Latest ZIP package]||
+||[http://code.google.com/p/urlnet-python-library/source/browse/trunk/readme.txt Readme file]||
+||[http://code.google.com/p/urlnet-python-library/source/browse/trunk/doc/UrlNetUserGuide.doc Manual (PDF)] || 
