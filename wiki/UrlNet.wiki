@@ -1,0 +1,4 @@
+#summary Placeholder page for UrlNet.
+
+= Introduction =
+This page is necessary because the name UrlNet looks like a wiki name.
