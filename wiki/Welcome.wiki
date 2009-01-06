@@ -2,7 +2,7 @@
 
 = !UrlNet Python Library for Social Network Analysis Data Collection on the Web =
 
-<a href="http://urlnet-python-library.googlecode.com/svn/wiki/healthcareguy-cosmos-2.jpg" target="_blank"><img src="http://urlnet-python-library.googlecode.com/svn/wiki/healthcareguy-cosmos-2.jpg" width="800" /></a>
+<a href="http://urlnet-python-library.googlecode.com/svn/wiki/healthcareguy-cosmos-2.jpg" target="_blank"><img src="http://urlnet-python-library.googlecode.com/svn/wiki/healthcareguy-cosmos-2.jpg" width="400" /></a>
 
 _*Technorati cosmos network.* Click picture for full-size image in new window._
 
