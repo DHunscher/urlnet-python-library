@@ -13,7 +13,7 @@ This code repository is the home of the !UrlNet Python Library for network analy
 
 When studying aspects of the World Wide Web (hereinafter "Web") using network analysis tools and techniques, building networks for analysis can be tedious, time-consuming, and error-prone.  The !UrlNet library, written in the Python scripting language, is intended to provide a powerful, flexible, easy to use mechanism for generating such networks.
 
-== Outlink harvesting ==
+= Outlink harvesting =
 
 Starting at a given page (which we can call the root page), we can collect, or "harvest", the outlinks on the page and follow them to other pages. We can harvest the outlinks on these pages, and follow them, et cetera, to the search depth we desire. These actions create a directed graph in which the pages are vertices and the outlinks form the arcs between vertices. While this graph begins in tree form, it often loops back on itself in many places, forming an acyclic graph that illustrates the interrelationships within and between clusters of knowledge representations on the Web. It is often useful to create such networks when studying phenomena on the Web, for example the findability of a given page from a known starting-point page, or when looking at the structure of a particular Website (a site map).
 
@@ -25,13 +25,13 @@ In addition to leveraging the default capabilities of Python's urllib and urllib
 
 _*Site-map network.* Click picture for full-size image in new window._
 
-== Web Service APIs ==
+= Web Service APIs =
 
 While URLs are typically thought of as links from Web pages to other Web pages, that is only one of their uses. Web Services based on the SOAP/WSDL standards, and also lightweight APIs based on the REST paradigm, can also be accessed via URLs.  Social networking sites such as Technorati, Delicious, and Bibsonomy provide such APIs. The National Library of Medicine offers URL-based APIs that access its Medline database and its bioinformatics data repositories.  There are many others too numerous to mention.
 
 Because !UrlNet is written as a class library, it is easy to specialize and/or extend its functionality by subclassing one or more of its classes. One example provided shows how to building networks using the Technorati Cosmos API by subclassing two classes and writing a total of four fairly short functions.
 
-== Trees and Forests ==
+= Trees and Forests =
 
 Some URL-based networks are by nature best thought of as upside-down tree structures, for example a site map. Such networks are actually directed graphs, since lower-level nodes may have links to siblings and ancestor nodes as well as their own child nodes. Nonetheless, each node can be said to exist at some level under the root node (e.g., the home page in a site map).
 
