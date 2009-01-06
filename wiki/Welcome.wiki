@@ -4,7 +4,7 @@
 
 This code repository is the home of the !UrlNet Python Library for network analysis data collection on the Web.
 
-http://urlnet-python-library.googlecode.com/svn/wiki/healthcareguy-cosmos-2.jpg
+<a href="http://urlnet-python-library.googlecode.com/svn/wiki/healthcareguy-cosmos-2.jpg" target="_blank"><img src="http://urlnet-python-library.googlecode.com/svn/wiki/healthcareguy-cosmos-2.jpg" width="800" /></a>
 
 = Details =
 
