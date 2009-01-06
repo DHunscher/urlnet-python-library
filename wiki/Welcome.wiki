@@ -23,6 +23,24 @@ In addition to leveraging the default capabilities of Python's urllib and urllib
 
 _Click picture for full-size image in new window._
 
+== Web Service APIs ==
+
+While URLs are typically thought of as links from Web pages to other Web pages, that is only one of their uses. Web Services based on the SOAP/WSDL standards, and also lightweight APIs based on the REST paradigm, can also be accessed via URLs.  Social networking sites such as Technorati, Delicious, and Bibsonomy provide such APIs. The National Library of Medicine offers URL-based APIs that access its Medline database and its bioinformatics data repositories.  There are many others too numerous to mention.
+
+Because !UrlNet is written as a class library, it is easy to specialize and/or extend its functionality by subclassing one or more of its classes. One example provided shows how to building networks using the Technorati Cosmos API by subclassing two classes and writing a total of four fairly short functions.
+
+== Trees and Forests ==
+
+Some URL-based networks are by nature best thought of as upside-down tree structures, for example a site map. Such networks are actually directed graphs, since lower-level nodes may have links to siblings and ancestor nodes as well as their own child nodes. Nonetheless, each node can be said to exist at some level under the root node (e.g., the home page in a site map).
+
+Other networks - often more interesting networks - can be depicted as "forests" rather than trees.  A forest has multiple root nodes, each of which is a tree in its own right. The trees in the forest can have links to other trees, but there is no requirement that any given tree link to any other tree at all.
+
+One example of a forest is the union of URL trees created from each of the URLs extracted from a search engine query result set.  The root URLs of a forest could also come from a data set obtained from a search engine provider, such as the 2006 AOL data set (see http://gregsadetsky.com/aol-data/ for sources).  One might, for example, investigate the "Vocabulary Problem" to see how the result sets of different search queries expressing the same concept overlap (or fail to overlap).
+
+!UrlNet supports building several variations on forest networks.  The vanilla version uses a caller-provided list of URLs as the root nodes for the forest.  Another variation allows you to supply a URL that will not be included in the network as the root node, but whose outlinks form the list of URLs used as the forest roots.  We call the initial URL in this variation a phantom root.  Other variations build on these routines, applying them, for example, to result sets from various search engines, including but not limited to Google, Yahoo! Search, Windows Live Search, and AOL Search.
+
+There is even a way to create a forest from a set of URLs and to unify them into a tree structure by the addition of an arbitrary root node.  We call the arbitrary root node a placeholder root.
+
 <a href="http://urlnet-python-library.googlecode.com/svn-history/r23/wiki/healia-quitsmoking-components.jpg" target="_blank"><img src="http://urlnet-python-library.googlecode.com/svn-history/r23/wiki/healia-quitsmoking-components.jpg" width="800" /></a>
 
 _Click picture for full-size image in new window._
