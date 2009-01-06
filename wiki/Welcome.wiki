@@ -45,6 +45,15 @@ There is even a way to create a forest from a set of URLs and to unify them into
 
 _Click picture for full-size image in new window._
 
+= Generating input data for network visualization software =
+
+!UrlNet generates an abstract data structure in memory, from which any number of outputs could potentially be generated.  Currently, the library supports output to three formats: a printable text hierarchy, Pajek project files, and GUESS network files. Other formats can be added easily.
+
+I chose Pajek and GUESS because they are freely available programs, and because they are the software tools on which I learned everything I know about network visualization.  You can download them from the Web at the addresses shown in the following table.
+
+|| *Pajek* || Download from the Pajek Wiki at http://pajek.imfm.si/doku.php The wiki has links to other useful software tools for working with Pajek, and tells how to sign up for the Pajek mailing list. There is a very insightful book written by W. de Nooy, A. Mrvar, and V. Batagelj, entitled Exploratory Social Network Analysis with Pajek, published in 2005 by the Cambridge University Press. There is a downloadable version of Pajek that is much older and less functional than the most current version, but has the advantage of being fully compatible with the command set described in the book. UrlNet-generated Pajek projects are fully compatible with both the current version and the "book" version. The "book" version of Pajek can be downloaded at http://vlado.fmf.uni-lj.si/pub/networks/data/esna/Pajek.be.exe.  ||
+|| *GUESS* || GUESS is the creation of Eytan Adar, and can be downloaded at the main GUESS website, http://graphexploration.cond.org/. !UrlNet support for GUESS is presently limited to building simple networks for URL and domain networks. I have been using Pajek longer and more frequently than GUESS, so the GUESS facilities are more primitive than I would like them to be. ||
+
 <a href="http://urlnet-python-library.googlecode.com/svn-history/r23/wiki/guess1.jpg" target="_blank"><img src="http://urlnet-python-library.googlecode.com/svn-history/r23/wiki/guess1.jpg" width="800" /></a>
 
 _Click picture for full-size image in new window._
