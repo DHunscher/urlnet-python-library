@@ -1,10 +1,12 @@
-#summary Welcome!
+#summary Welcome to the !UrlNet Python Library for Social Network Analysis Data Collection on the Web
 
 = !UrlNet Python Library for Social Network Analysis Data Collection on the Web =
 
 <a href="http://urlnet-python-library.googlecode.com/svn/wiki/healthcareguy-cosmos-2.jpg" target="_blank"><img src="http://urlnet-python-library.googlecode.com/svn/wiki/healthcareguy-cosmos-2.jpg" width="800" /></a>
 
 _*Technorati cosmos network.* Click picture for full-size image in new window._
+
+<wiki:toc max_depth="2" />
 
 = Introduction =
 This code repository is the home of the !UrlNet Python Library for network analysis data collection on the Web.
@@ -66,9 +68,13 @@ _*GUESS-generated network.* Click picture for full-size image in new window._
 
 _*Network used for search engine result set analysis.* Click picture for full-size image in new window._
 
+= Social network analysis in a document corpus =
+
+!UrlNet has special features for analysis of networks of publications, co-authors, and !MeSH keywords using APIs provided by the National Library of Medicine's National Center for Biological Information (NCBI). NCBI has numerous databases accessible through these Web Service APIs, and !UrlNet can be used for analysis of many different interdisciplinary research questions in genomics, proteomics, metabolomics, cellular biology, and clinical science.
+
 <a href="http://urlnet-python-library.googlecode.com/svn-history/r23/wiki/strecher-cosmos.jpg" target="_blank"><img src="http://urlnet-python-library.googlecode.com/svn-history/r23/wiki/strecher-cosmos.jpg" width="800" /></a>
 
-_*Publication, co-author, and MeSH keyword cosmos network derived from !PubMed data.* Click picture for full-size image in new window._
+_*Publication, co-author, and !MeSH keyword cosmos network derived from !PubMed data.* Click picture for full-size image in new window._
 
 
 = Important Links =
