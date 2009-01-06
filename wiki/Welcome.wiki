@@ -4,7 +4,7 @@
 
 <a href="http://urlnet-python-library.googlecode.com/svn/wiki/healthcareguy-cosmos-2.jpg" target="_blank"><img src="http://urlnet-python-library.googlecode.com/svn/wiki/healthcareguy-cosmos-2.jpg" width="800" /></a>
 
-_Click picture for full-size image in new window._
+_*Technorati cosmos network.* Click picture for full-size image in new window._
 
 = Introduction =
 This code repository is the home of the !UrlNet Python Library for network analysis data collection on the Web.
@@ -21,7 +21,7 @@ In addition to leveraging the default capabilities of Python's urllib and urllib
 
 <a href="http://urlnet-python-library.googlecode.com/svn-history/r23/wiki/sitemap-1.jpg" target="_blank"><img src="http://urlnet-python-library.googlecode.com/svn-history/r23/wiki/sitemap-1.jpg" width="800" /></a>
 
-_Click picture for full-size image in new window._
+_*Site-map network.* Click picture for full-size image in new window._
 
 == Web Service APIs ==
 
@@ -43,7 +43,7 @@ There is even a way to create a forest from a set of URLs and to unify them into
 
 <a href="http://urlnet-python-library.googlecode.com/svn-history/r23/wiki/healia-quitsmoking-components.jpg" target="_blank"><img src="http://urlnet-python-library.googlecode.com/svn-history/r23/wiki/healia-quitsmoking-components.jpg" width="800" /></a>
 
-_Click picture for full-size image in new window._
+_*Weak components in a forest network.* Click picture for full-size image in new window._
 
 = Generating input data for network visualization software =
 
@@ -56,15 +56,19 @@ I chose Pajek and GUESS because they are freely available programs, and because 
 
 <a href="http://urlnet-python-library.googlecode.com/svn-history/r23/wiki/guess1.jpg" target="_blank"><img src="http://urlnet-python-library.googlecode.com/svn-history/r23/wiki/guess1.jpg" width="800" /></a>
 
-_Click picture for full-size image in new window._
+_*GUESS-generated network.* Click picture for full-size image in new window._
+
+= Specialized features for analysis of search engine result sets =
+
+!UrlNet was initially developed for use in the analysis of the findability of high-quality information on the Internet. As a result, it has a number of features targeted at that analytical domain, including the ability to generate hit-probability vectors. The following diagram illustrates the use of this feature to identify problems in the findability of high-quality information on smoking cessation:
 
 <a href="http://urlnet-python-library.googlecode.com/svn-history/r23/wiki/google-quitsmoking-03182008.jpg" target="_blank"><img src="http://urlnet-python-library.googlecode.com/svn-history/r23/wiki/google-quitsmoking-03182008.jpg" width="800" /></a>
 
-_Click picture for full-size image in new window._
+_*Network used for search engine result set analysis.* Click picture for full-size image in new window._
 
 <a href="http://urlnet-python-library.googlecode.com/svn-history/r23/wiki/strecher-cosmos.jpg" target="_blank"><img src="http://urlnet-python-library.googlecode.com/svn-history/r23/wiki/strecher-cosmos.jpg" width="800" /></a>
 
-_Click picture for full-size image in new window._
+_*Publication, co-author, and MeSH keyword cosmos network derived from !PubMed data.* Click picture for full-size image in new window._
 
 
 = Important Links =
