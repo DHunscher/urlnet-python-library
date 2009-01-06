@@ -1,12 +1,24 @@
 #summary Welcome!
 
-= Introduction =
-
-This code repository is the home of the !UrlNet Python Library for network analysis data collection on the Web.
+= !UrlNet Python Library for Social Network Analysis Data Collection on the Web =
 
 <a href="http://urlnet-python-library.googlecode.com/svn/wiki/healthcareguy-cosmos-2.jpg" target="_blank"><img src="http://urlnet-python-library.googlecode.com/svn/wiki/healthcareguy-cosmos-2.jpg" width="800" /></a>
+Click picture for full-size image in new window.
 
-= Details =
+= Introduction =
+This code repository is the home of the !UrlNet Python Library for network analysis data collection on the Web.
+
+When studying aspects of the World Wide Web (hereinafter "Web") using network analysis tools and techniques, building networks for analysis can be tedious, time-consuming, and error-prone.  The !UrlNet library, written in the Python scripting language, is intended to provide a powerful, flexible, easy to use mechanism for generating such networks.
+
+== Outlink harvesting ==
+
+Starting at a given page (which we can call the root page), we can collect, or "harvest", the outlinks on the page and follow them to other pages. We can harvest the outlinks on these pages, and follow them, et cetera, to the search depth we desire. These actions create a directed graph in which the pages are vertices and the outlinks form the arcs between vertices. While this graph begins in tree form, it often loops back on itself in many places, forming an acyclic graph that illustrates the interrelationships within and between clusters of knowledge representations on the Web. It is often useful to create such networks when studying phenomena on the Web, for example the findability of a given page from a known starting-point page, or when looking at the structure of a particular Website (a site map).
+
+When using link harvesting to generate networks, !UrlNet by default constructs a domain network in addition to the URL network. This provides a high-level view of the network, often useful in cases where the URL network consists of tens or hundreds of thousands of nodes.
+
+In addition to leveraging the default capabilities of Python's urllib and urllib2 modules, !UrlNet provides facilities for the use of Python regular expressions for link extraction, and makes it easy to custom-build URLs from information derived from a Web page. This method was developed to support the study of search engine result sets, but has been generalized for use in any number of additional contexts. 
+
+= More Information =
 
 ||[http://www.southwindpress.com/urlnet/ Original home page: Description and examples of output]||
 ||[http://code.google.com/p/urlnet-python-library/source/browse/trunk/latest-download/ Latest ZIP package]||
