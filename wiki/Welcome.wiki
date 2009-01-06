@@ -3,7 +3,8 @@
 = !UrlNet Python Library for Social Network Analysis Data Collection on the Web =
 
 <a href="http://urlnet-python-library.googlecode.com/svn/wiki/healthcareguy-cosmos-2.jpg" target="_blank"><img src="http://urlnet-python-library.googlecode.com/svn/wiki/healthcareguy-cosmos-2.jpg" width="800" /></a>
-Click picture for full-size image in new window.
+
+_Click picture for full-size image in new window._
 
 = Introduction =
 This code repository is the home of the !UrlNet Python Library for network analysis data collection on the Web.
@@ -19,7 +20,8 @@ When using link harvesting to generate networks, !UrlNet by default constructs a
 In addition to leveraging the default capabilities of Python's urllib and urllib2 modules, !UrlNet provides facilities for the use of Python regular expressions for link extraction, and makes it easy to custom-build URLs from information derived from a Web page. This method was developed to support the study of search engine result sets, but has been generalized for use in any number of additional contexts. 
 
 <a href="http://urlnet-python-library.googlecode.com/svn-history/r23/wiki/sitemap-1.jpg" target="_blank"><img src="http://urlnet-python-library.googlecode.com/svn-history/r23/wiki/sitemap-1.jpg" width="800" /></a>
-Click picture for full-size image in new window.
+
+_Click picture for full-size image in new window._
 
 
 = Important Links =
