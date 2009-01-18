@@ -1,7 +1,8 @@
-#summary Welcome to the !UrlNet Python Library for Social Network Analysis Data Collection on the Web
+#summary Welcome to the UrlNet Python Library for Social Network Analysis Data Collection on the Web
 
 = !UrlNet Python Library for Social Network Analysis Data Collection on the Web =
 
+==Attention users and prospective users! Check out CurrentKnownBugsAndWorkarounds! ==
 <a href="http://urlnet-python-library.googlecode.com/svn/wiki/healthcareguy-cosmos-2.jpg" target="_blank"><img src="http://urlnet-python-library.googlecode.com/svn/wiki/healthcareguy-cosmos-2.jpg" width="400" /></a>
 
 _*Technorati cosmos network.* Click picture for full-size image in new window._
@@ -36,6 +37,7 @@ Because !UrlNet is written as a class library, it is easy to specialize and/or e
 = Trees and Forests =
 
 Some URL-based networks are by nature best thought of as upside-down tree structures, for example a site map. Such networks are actually directed graphs, since lower-level nodes may have links to siblings and ancestor nodes as well as their own child nodes. Nonetheless, each node can be said to exist at some level under the root node (e.g., the home page in a site map).
+
 
 Other networks - often more interesting networks - can be depicted as "forests" rather than trees.  A forest has multiple root nodes, each of which is a tree in its own right. The trees in the forest can have links to other trees, but there is no requirement that any given tree link to any other tree at all.
 
