@@ -100,7 +100,7 @@ class GoogleTree(SearchEngineTree):
             self.SetProperty('nextUrlClass',Url)
             
             # Google-specific regex pattern
-            self.SetProperty('regexPattern','<h2 class=r><a href=\"(.*?)\"')
+            self.SetProperty('regexPattern','<h3 class=r><a href=\"(.*?)\"')
         
         except Exception, e:
             self.SetLastError('in GoogleTree.__init__: ' + str(e))
