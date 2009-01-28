@@ -254,7 +254,7 @@ class SearchEngineTree(UrlTree):
         try:
             if currentLevel == None and '://' not in startUrl:
                 (queryURL,url,Urls) = self.GetSEResultSet(query=startUrl,putRoot=True)
-                ret = self.BuildUrlForest(self, Urls, level=1, parentIdx=parentItemIdx)
+                ret = self.BuildUrlForest(Urls, level=1, parentIdx=parentItemIdx)
                 return ret
             else:
                 if currentLevel == None:
