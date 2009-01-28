@@ -255,37 +255,68 @@ def GetNameOfItem(item,idx,useTitles):
 
 def WritePajekVertex(item,net,level,args):
     log = Log('WritePajekVertex',item.GetName())
-    FILE = args[0]
-    useTitles = args[1]
-    idx = item.GetIdx()
-    name = GetNameOfItem(item,idx,useTitles)
-    #name = RemoveNonPrintableChars(name)
-    name = RemoveRealmPrefix(name)
-    trimlength = net.GetProperty('nodeLengthLimit')
-    if trimlength != None and len(name) > trimlength:
-        name = name[0:trimlength] + '...'
-    FILE.write('       ' + str(idx) + ' "' + name + '"   \n')
-    return True
+    try:
+        FILE = args[0]
+        useTitles = args[1]
+        idx = item.GetIdx()
+        name = GetNameOfItem(item,idx,useTitles)
+        #name = RemoveNonPrintableChars(name)
+        name = RemoveRealmPrefix(name)
+        trimlength = net.GetProperty('nodeLengthLimit')
+        if trimlength != None and len(name) > trimlength:
+            name = name[0:trimlength] + '...'
+        FILE.write('       ' + str(idx) + ' "' + name + '"   \n')
+        return True
+    except Exception, e:
+        log.Write('Exception in WriteGuessDomainArc: %s' % (str(e)))
+        raise
 
 def WritePajekArcOrEdge(fromIdx,toIdx,net,args):
     log = Log('WritePajekArcOrEdge',"%d %d" % (fromIdx,toIdx))
-    FILE = args
-    # get parent item
-    item = net.GetUrlNetItemByIndex(fromIdx)
-    # get child weight 
-    weight = item.GetChildHitCount(toIdx)
-    FILE.write('       ' + str(fromIdx) + '       ' + str(toIdx) + ' ' + str(weight) + ' \n')
-    return True
+    try:
+        FILE = args[0]
+        reverseDirection = args[1]
+        # get parent item
+        item = net.GetUrlNetItemByIndex(fromIdx)
+        # get child weight 
+        weight = item.GetChildHitCount(toIdx)
+        # weight can't be zero
+        if weight == 0:
+            weight = 1
+        # if reverseDirection is true, we need to swap the from and to indices
+        if reverseDirection:
+            temp = fromIdx
+            fromIdx = toIdx
+            toIdx = temp
+        FILE.write('       ' + str(fromIdx) + '       ' + str(toIdx) + ' ' + str(weight) + ' \n')
+        return True
+    except Exception, e:
+        log.Write('Exception in WriteGuessDomainArc: %s' % (str(e)))
+        raise
      
 def WritePajekDomainArcOrEdge(fromIdx,toIdx,net,args):
     log = Log('WritePajekDomainArcOrEdge',"%d %d" % (fromIdx,toIdx))
-    FILE = args
-    # get parent item
-    item = net.GetDomainByIndex(fromIdx)
-    # get child weight 
-    weight = item.GetChildHitCount(toIdx)
-    FILE.write('       ' + str(fromIdx) + '       ' + str(toIdx) + ' ' + str(weight) + ' \n')
-    return True
+    try:
+        FILE = args[0]
+        reverseDirection = args[1]
+            
+        # get parent item
+        item = net.GetDomainByIndex(fromIdx)
+        # get child weight 
+        weight = item.GetChildHitCount(toIdx)
+        # weight can't be zero
+        if weight == 0:
+            weight = 1
+        # if reverseDirection is true, we need to swap the from and to indices
+        if reverseDirection:
+            temp = fromIdx
+            fromIdx = toIdx
+            toIdx = temp
+        FILE.write('       ' + str(fromIdx) + '       ' + str(toIdx) + ' ' + str(weight) + ' \n')
+        return True
+    except Exception, e:
+        log.Write('Exception in WriteGuessDomainArc: %s' % (str(e)))
+        raise
      
 ###################################################################
 #####   a set of mapper functions for building Guess networks #####
@@ -340,13 +371,22 @@ def WriteGuessArc(fromIdx,toIdx,frequency,net,args):
     log = Log('WriteGuessArc',"%d %d" % (fromIdx,toIdx))
     #    edgedef = 'edgedef>node1 VARCHAR,node2 VARCHAR,frequency INT'
     try:
-        FILE = args
+        FILE = args[0]
+        reverseDirection = args[1]
         fromItem = net.GetUrlNetItemByIndex(fromIdx)
         toItem = net.GetUrlNetItemByIndex(toIdx)
         fromDomain = fromItem.GetDomain()
         fromDomain = ReplaceIllegalChars(fromDomain)
         toDomain = toItem.GetDomain()
         toDomain = ReplaceIllegalChars(toDomain)
+        # if reverseDirection is true, we need to swap the from and to indices
+        if reverseDirection:
+            temp = fromIdx
+            fromIdx = toIdx
+            toIdx = temp
+        # frequency can't be zero
+        if frequency == 0:
+            frequency = 1
         FILE.write(fromDomain + str(fromIdx) + ',' + toDomain + str(toIdx) + ',' + str(frequency) + '\n')
         return True
     except Exception, e:
@@ -392,7 +432,15 @@ def WriteGuessDomainArc(fromIdx,toIdx,frequency,net,args):
     log = Log('WriteGuessDomainArc',"%d %d" % (fromIdx,toIdx))
     #    edgedef = 'edgedef>node1 VARCHAR,node2 VARCHAR,frequency INT'
     try:
-        FILE = args
+        FILE = args[0]
+        reverseDirection = args[1]
+        if reverseDirection:
+            temp = fromIdx
+            fromIdx = toIdx
+            toIdx = temp
+        # frequency can't be zero
+        if frequency == 0:
+            frequency = 1
         FILE.write('v' + str(fromIdx) + ',' + 'v' + str(toIdx) + ',' + str(frequency) + '\n')
         return True
     except Exception, e:

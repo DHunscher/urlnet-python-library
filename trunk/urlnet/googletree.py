@@ -99,8 +99,12 @@ class GoogleTree(SearchEngineTree):
             # If the property is not set, the default Url class will be used.
             self.SetProperty('nextUrlClass',Url)
             
-            # Google-specific regex pattern
-            self.SetProperty('regexPattern','<h3 class=r><a href=\"(.*?)\"')
+            # Google-specific regex patterns
+            # 14-Jan-2009: discovered that Google has changed result set structure
+            # we now include both new and old regex patterns
+            self.SetProperty('regexPattern',\
+                ['<h2 class=r><a href=\"(.*?)\"',\
+                '<h3 class=r><a href=\"(.*?)\"',])
         
         except Exception, e:
             self.SetLastError('in GoogleTree.__init__: ' + str(e))
@@ -131,16 +135,11 @@ class GoogleTree(SearchEngineTree):
 
         
 def main():
-    # uncomment one of the vectorGenerator assignments below
-    
-    # vectorGenerator = computeEqualProbabilityVector
-    vectorGenerator = computeDescendingStraightLineProbabilityVector
-    
     # dir to write to
     timestamp = strftime('%Y-%m-%d--%H-%M-%S',localtime())
-    baseDir = urlutils.GetConfigValue('workingDir')
+    baseDir = GetConfigValue('workingDir')
     #baseDir = urlutils.GetConfigValue('workingDir')
-    workingDir = baseDir+timestamp
+    workingDir = os.path.join(baseDir,timestamp)
     oldDir = os.getcwd()
     
     myLog = None
@@ -166,17 +165,13 @@ def main():
     
     x = GoogleTree(_maxLevel=1,
                     _workingDir=workingDir,
-                    _resultLimit=20,
-                    _probabilityVector = probabilityByPositionStopSmokingClicks,
-                    _probabilityVectorGenerator = vectorGenerator)
+                    _resultLimit=10)
     (queryURL,url,Urls) = x.GetSEResultSet('quit smoking')
     print queryURL
     print Urls
     
     x.BuildUrlForestWithPhantomRoot('quit smoking')
 
-    x.MapFunctionToUrlNetwork(PrintHierarchy,args=sys.stderr)
-    x.MapFunctionToDomainNetwork(PrintHierarchy,args=sys.stderr)
     x.WritePajekFile('googletree-quitsmoking','googletree-quitsmoking')
     x.WriteGuessFile('googletree-quitsmoking_urls')            # url network
     x.WriteGuessFile('googletree-quitsmoking_domains',False)      #domain network

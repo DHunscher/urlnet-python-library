@@ -123,7 +123,8 @@ class Url(Object):
             if self.user_agent:
                 self.req_headers['User-Agent'] = self.user_agent
             else:
-                self.req_headers['User-Agent'] = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT; UrlNet Python Library;'
+                self.req_headers['User-Agent'] = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT;'
+                #self.req_headers['User-Agent'] = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT; UrlNet Python Library;'
                 
         try:
             self.url = _inboundUrl
@@ -251,7 +252,10 @@ class Url(Object):
                 return title
             return page
         except Exception, inst:
-            self.SetLastError ( 'RetrieveUrlContent: ' + str(type(inst)) + '\n' + str(inst) + '\non URL ' + theUrl )
+            theError = 'RetrieveUrlContent: ' + str(type(inst)) + '\n' + str(inst) + '\non URL ' + theUrl
+            self.SetLastError ( theError )
+            log.Write(theError)
+            print theError
             return ''
 
     def GetPage(self):

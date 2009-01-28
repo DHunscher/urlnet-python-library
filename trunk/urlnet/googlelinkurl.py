@@ -15,14 +15,15 @@ import string
 import sys
 import os
 
+from regexqueryurl import RegexQueryUrl
 from urllib import urlopen, urlencode, unquote_plus
 from urlparse import *
 from url import Url
 from log import Log, logging
 import log
 
-#################### the RegexQueryUrl class ######################
-class RegexQueryUrl(Url):
+#################### the GoogleLinkUrl class ######################
+class GoogleLinkUrl(RegexQueryUrl):
     """ A class to parse retrieved documents using Python regular expressions. It
         It is optimized for use with search engines, which is why regex-related things
         are passed as properties rather than arguments. The top-level search
@@ -37,10 +38,6 @@ class RegexQueryUrl(Url):
         a single string. The optional findall_args property is the flags to use in the call to
         re.findall().
     """
-
-    regexPattern = None
-    nextUrlClass = None
-    findall_args = None
     
     def __init__(self, _inboundUrl, _network=None, limit=20, start=1):
         """
@@ -51,20 +48,12 @@ class RegexQueryUrl(Url):
         # _doInit to False automatically, so we can retrieve
         # the anchors using regular expressions on the fly.
         
-        myLog = Log('RegexQueryUrl ctor',_inboundUrl)
-        Url.__init__(self,_inboundUrl,_network=_network,_doInit=False)
+        myLog = Log('GoogleLinkUrl ctor',_inboundUrl)
+        RegexQueryUrl.__init__(self,_inboundUrl,_network=_network,limit=limit,start=start)
 
-        # this property is required.
-        self.regexPattern = self.network.GetProperty('regexPattern')
-        if not self.regexPattern:
-            raise Exception, 'RegexQueryUrl ctor: regular expression property not found'
-        
-        # the next two properties are optional.
-        self.findall_args = self.network.GetProperty('findall_args')
-        
         self.nextUrlClass = self.network.GetProperty('nextUrlClass')
         if not self.nextUrlClass:
-            self.nextUrlClass = Url
+            self.nextUrlClass = GoogleLinkUrl
             
     def GetAnchorList(self):
         """
@@ -84,21 +73,16 @@ class RegexQueryUrl(Url):
                 # parse to get the href
                 #
                 page = self.GetPage()
-                
-                filename = self.network.GetProperty('SEQueryFileName')
-                if filename:
-                    fd = open(filename + '.html','w')
-                    fd.write('%s\n' % page)
-                    fd.close()
-
                 self.anchors = []
+                if page is None or len(page) == 0:
+                    return []
                 ptype = str(type(self.regexPattern)).lower()
                 if 'str' in ptype:
                     regexExprs = [self.regexPattern,]
                 elif ('list' in ptype) or ('tuple' in ptype): # already a list or other tuple type
                     regexExprs = self.regexPattern
                 else:
-                    raise Exception, 'unsupported regex pattern type "' + ptype + '" in RegexQueryUrl.GetAnchorList()'
+                    raise Exception, 'unsupported regex pattern type "' + ptype + '" in GoogleLinkUrl.GetAnchorList()'
                 items = [page,]
                 for regexPattern in regexExprs:
                     results = []
@@ -107,60 +91,13 @@ class RegexQueryUrl(Url):
                             results = results + re.findall(regexPattern,item,self.findall_args)
                         else:
                             results = results + re.findall(regexPattern,item)
-                    self.anchors = self.anchors + results
+                    self.anchors += results
 
                 for i in range(0,len(self.anchors)):
                     self.anchors[i] = self.anchors[i].strip()
                     
                 self.network.urlclass = self.nextUrlClass
 
-                # leave behind a list of the urls retrieved
-                if filename:
-                    try:
-                        fd = open(filename + '.txt','w')
-                        i = 1
-                        for anchor in self.anchors:
-                            fd.write(str(i) + '\t' + anchor + '\n')
-                            i = i + 1
-                        fd.close()
-                    except Exception, inst:
-                        self.SetLastError( 'RegexQueryUrl.GetAnchorList' + ' while trying to write to ' + filename + ': ' + str(type(inst)) + '\n' + self.url )
-
-                # get rid of markup embedded in urls by search engines
-                i = 0
-                for url in self.anchors:
-                    #print i+1
-                    #print url
-                    in_markup = False
-                    url_without_markup = ''
-                    for c in url:
-                        if in_markup:
-                            if c == '>':
-                                in_markup = False
-                        elif c == '<':
-                            in_markup = True
-                        else:
-                            url_without_markup = url_without_markup + c
-                    #print url_without_markup
-                    url_without_markup = unquote_plus(url_without_markup)
-                    #print url_without_markup
-                    url_without_markup = re.sub('&amp;','&',url_without_markup)
-                    #print url_without_markup
-                    
-
-                    # handle the case of URLs that begin with a reference to the host root
-                    # (e.g., /cgi-bin/processor.pl?spam=3&eggs=2)
-                    
-                    if '://' not in url_without_markup:
-                        parts = urlparse(self.url)
-                        if url_without_markup[0] == '/':
-                            if self.network.rootDomain == None:
-                                url_without_markup = parts.hostname + url_without_markup
-                        url_without_markup = parts.scheme + '://' + url_without_markup
-                    self.anchors[i] = url_without_markup
-                    #print urls[i]
-                    i = i + 1
-                    
                 
                 i = 0
                 for url in self.anchors:
@@ -178,7 +115,7 @@ class RegexQueryUrl(Url):
                 return self.anchors
                     
             except Exception, inst:
-                self.SetLastError( 'RegexQueryUrl.GetAnchorList' + ": " + str(type(inst)) + '\n' + self.url )
+                self.SetLastError( 'GoogleLinkUrl.GetAnchorList' + ": " + str(type(inst)) + '\n' + self.url )
                 return []
 
 

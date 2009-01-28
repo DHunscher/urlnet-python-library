@@ -1084,6 +1084,18 @@ class UrlTree(Object):
         ### PAJEK
         log = Log('WritePajekStream',netname)
         try:
+            # for some kinds of networks, it is useful to reverse direction of arcs
+            # or edges
+            reverseDirection = False
+            try:
+                reverseDirection = self.GetProperty('reverseArcOrEdgeDirection')
+            except Exception, e:
+                raise 'in UrlTree.WritePajekStream, self.GetProperty call threw exception ' + str(e)
+            if reverseDirection == None:
+                reverseDirection = False
+            elif reverseDirection != False:
+                reverseDirection = True
+                
             stream.write('*Network urls_' + netname + '_directed\n')
             maxIdx = len(self.UrlNetItemByIndex.keys())
 
@@ -1099,7 +1111,7 @@ class UrlTree(Object):
                 # write arcs by mapping a function to each parent-child pair in the list.
 
                 stream.write('*Arcs\n')
-                self.MapFunctionToParentChildPairs(functionToMap=WritePajekArcOrEdge,args=stream)
+                self.MapFunctionToParentChildPairs(functionToMap=WritePajekArcOrEdge,args=(stream,reverseDirection))
 
                 stream.write('*Edges\n')
                 #none
@@ -1117,7 +1129,7 @@ class UrlTree(Object):
                 #none
 
                 stream.write('*Edges\n')
-                self.MapFunctionToParentChildPairs(functionToMap=WritePajekArcOrEdge,args=stream)
+                self.MapFunctionToParentChildPairs(functionToMap=WritePajekArcOrEdge,args=(stream,reverseDirection))
                     
                 stream.write('\n\n*Partition URLLevels.clu\n*Vertices ' + str(maxIdx) + ' \n')
                 itemlist = {}
@@ -1149,7 +1161,8 @@ class UrlTree(Object):
                 # write arcs by mapping a function to each parent-child pair in the list.
 
                 stream.write('*Arcs\n')
-                self.MapFunctionToDomainParentChildPairs(functionToMap=WritePajekDomainArcOrEdge,args=stream)
+                self.MapFunctionToDomainParentChildPairs(functionToMap=WritePajekDomainArcOrEdge,
+                    args=(stream,reverseDirection))
 
                 stream.write('*Edges\n')
                 #none
@@ -1168,7 +1181,8 @@ class UrlTree(Object):
                 #none
 
                 stream.write('*Edges\n')
-                self.MapFunctionToDomainParentChildPairs(functionToMap=WritePajekDomainArcOrEdge,args=stream)
+                self.MapFunctionToDomainParentChildPairs(functionToMap=WritePajekDomainArcOrEdge,
+                    args=(stream,reverseDirection))
                     
                 stream.write('\n\n*Partition DomainLevels.clu\n*Vertices ' + str(maxIdx) + ' \n')
                 itemlist = {}
@@ -1298,6 +1312,18 @@ class UrlTree(Object):
         domainNodedef = 'nodedef>name VARCHAR, domain VARCHAR'
         edgedef = 'edgedef>node1 VARCHAR,node2 VARCHAR,frequency INT'       
         try:
+            # for some kinds of networks, it is useful to reverse direction of arcs
+            # or edges
+            reverseDirection = False
+            try:
+                reverseDirection = self.GetProperty('reverseArcOrEdgeDirection')
+            except Exception, e:
+                raise 'in UrlTree.WriteGuessStream, self.GetProperty call threw exception ' + str(e)
+            if reverseDirection == None:
+                reverseDirection = False
+            elif reverseDirection != False:
+                reverseDirection = True
+                
             if doUrlNetwork:
                 """
                 if present, additionalUrlAttrs property value should be a list of two-item tuples containing
@@ -1321,7 +1347,8 @@ class UrlTree(Object):
 
                 # write arcs by mapping a function to each parent-child pair in the list.
                 stream.write(edgedef + '\n')
-                self.MapFunctionToUniqueParentChildPairs(functionToMap=WriteGuessArc,args=stream)
+                self.MapFunctionToUniqueParentChildPairs(functionToMap=WriteGuessArc,
+                    args=(stream,reverseDirection))
             else:
                 additionalDomainAttrs = self.GetProperty('additionalDomainAttrs')
                 if additionalDomainAttrs != None:
@@ -1336,7 +1363,8 @@ class UrlTree(Object):
 
                 # write arcs by mapping a function to each parent-child pair in the list.
                 stream.write(edgedef + '\n')
-                self.MapFunctionToUniqueDomainParentChildPairs(functionToMap=WriteGuessDomainArc,args=stream)
+                self.MapFunctionToUniqueDomainParentChildPairs(functionToMap=WriteGuessDomainArc,
+                    args=(stream,reverseDirection))
  
         except Exception, e:
             self.SetLastError('In WriteGuessStream: ' + str(e))
