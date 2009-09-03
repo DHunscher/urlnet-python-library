@@ -2,6 +2,20 @@
 
 # build networks using the Technorati API
 
+'''
+This sample program requires the 4Suite XML library, which can
+be downloaded for free from:
+
+http://4suite.org/index.xhtml
+
+
+This program will generate a warning from the 4Suite XML library:
+
+FtWarning: Creation of InputSource without a URI
+
+This warning can be ignored.
+'''
+
 import sys
 
 from urlnet.technoratitree import TechnoratiTree, TECHNORATI_COSMOS_API
