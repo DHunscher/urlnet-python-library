@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# $Id$
 """
 The AOLTree class creates a network (actually two networks, one for URLs
 and one for their domains) by generating a tree of AOL UrlNetItem instances.
