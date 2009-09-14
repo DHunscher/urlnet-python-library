@@ -1,5 +1,17 @@
 #!/usr/bin/env python
 # $Id$
+###################################################################
+#                                                                 #
+#                     UrlNet Python Library                       #
+#            Copyright (c) Dale A. Hunscher, 2007-2009            #
+#                     All rights reserved                         #
+#                                                                 #
+#                                                                 #
+# UrlNet is free for non-commercial use.                          #
+# For commercial uses, contact dale.hunscher@thenextroguewave.com #
+#                                                                 #
+###################################################################
+
 """
 The AOLTree class creates a network (actually two networks, one for URLs
 and one for their domains) by generating a tree of AOL UrlNetItem instances.

@@ -27,6 +27,16 @@ probabilityByPositionAllClicks = (
     0.0295,
     0.0279,
     0.0275,
+    0.0004,
+    0.0004,
+    0.0004,
+    0.0003,
+    0.0004,
+    0.0004,
+    0.0004,
+    0.0004,
+    0.0004,
+    0.0004,
     )
 
 # for queries related to smoking cessation

@@ -190,7 +190,7 @@ class UrlTree(Object):
             self.masterDomainIdx = 0
 
             """
-            Dictionaires by which we keep track of the domains
+            Dictionaries by which we keep track of the domains
             we encounter
             """
             #dict by index:
@@ -240,6 +240,9 @@ class UrlTree(Object):
 
             timestamp = strftime('%Y-%m-%d--%H-%M-%S',localtime())
             self.SetProperty('timestamp',timestamp)
+            
+            self.urlsToFlag = None
+            self.FlaggedUrlPartitionName = None
         except Exception, e:
             self.SetLastError('in UrlTree.__init__: ' + str(e))
             raise
@@ -477,11 +480,323 @@ class UrlTree(Object):
                               + '\ncurrent url: ' + str(childUrl))
             return False
 
-
-            
 ############################################################
 ##################  helper functions  ######################
 ############################################################
+
+
+    def AddListOfUrlsToFlag(self, urls, partitionName):
+        '''
+        Data structure being maintained here is a dict with the
+        partitionName param as a key and the list of urls as the
+        corresponding value.
+        '''
+        log = Log('AddListOfUrlsToFlag','urls=%s, parititionName=%s' % \
+                (str(urls), str(partitionName) ) \
+            )
+        try:
+            if self.urlsToFlag == None:
+                self.urlsToFlag = {}
+            # urls could be a file name or path
+            if type(urls) is str:
+                # should be a legitimate file path
+                fd = open(urls)
+                tmp = fd.readlines()
+                fd.close()
+                urls = []
+                for line in tmp:
+                    line = line.strip()
+                    if len(line) > 0:
+                        urls.append(line)
+            self.urlsToFlag[partitionName] = urls
+        except Exception, e:
+            log.Write('in AddListOfUrlsToFlag( urls=%s, partitionName=%s ) %s' \
+                % (str(urls), str(partitionName), str(e)))
+            return
+        
+
+    def FlagUrlCheck(self,item,urlToAdd):
+        '''
+        This method can be used to create a partition in which URLs found in
+        a caller-provided list are valued 1 and URLs not found in the list
+        are valued zero.
+        
+        self.urlsToFlag is a dict consisting of lists of URLs indexed by
+        partition names. For each such list, urlToAdd is checked to see if
+        if it is present, in which case the value of its property named for
+        the partition name will be set to 1, otherwise to zero.
+
+        '''
+        log = Log('FlagUrlCheck',urlToAdd)
+        try:
+            flagged = False
+            if self.urlsToFlag == None:
+                return
+            if len(self.urlsToFlag.keys()) == 0:
+                return
+            urlToAdd = RemoveRealmPrefix(urlToAdd)
+            for partition in self.urlsToFlag.keys():
+                urls = self.urlsToFlag[partition]
+                if urlToAdd in urls:
+                    item.SetProperty(partition,1)
+                else:
+                    item.SetProperty(partition,0)
+        except Exception, e:
+            log.Write('in FlagUrlCheck( ' + str(urlToAdd) + ' ): ' + str(e))
+            return
+        
+    def SetUrlTLDProperties(self,item,urlToAdd):
+        """ If the program has set the TrackTLDProperties property to True,
+            set the URL item's TLD properties. These include:
+            
+            urlTLD: the url's top-level domain.
+            urlTLDVector: a value indicating (in the library author's
+                arbitrary opinion) the relative value of this type of
+                TLD.
+            forProfitUrlTLD: True if url is probably for-profit, else set
+                to False.
+            """
+        log = Log('SetUrlTLDProperties',urlToAdd)
+        try:
+            doTLDProps = self.GetProperty('TrackTLDProperties')
+            if doTLDProps == None or doTLDProps == False:
+                return
+            tldConstants = self.GetUrlTLDConstants(urlToAdd)
+            item.SetProperty('urlTLD',tldConstants[0])
+            item.SetProperty('urlTLDVector',tldConstants[1])
+            item.SetProperty('forProfitUrlTLD',
+                self.IsForProfitUrlTLD(urlToAdd,returnBoolean = False))
+        except Exception, e:
+            log.Write('in SetUrlTLDProperties( ' + str(urlToAdd) + ' ): ' + str(e))
+            return
+        
+    def GetUrlTLD(self,url):
+        """ get the URL's type and return it in lowercase """
+        log = Log('GetUrlTLD',url)
+        
+        try:
+            '''
+            First, the TLDExceptions property is checked to see if the
+            caller has defined exceptions to the general rules for
+            identifying the nature of top-level domains.
+            
+            TLDExceptions is used to correctly identify domains that attempt
+            to pass themselves off as a different top-level domain type than
+            that representing their proper categorization, e.g., a commercial
+            entity representing itself as a dot-org.
+            
+            If set, the property value for TLDExceptions must be a dict in which
+            the keys are fragments of URLs and the dict entry values are from
+            the set of keys for the urlTypeconstants dictionary in 
+            GetUrlTLDConstants. If the key is found in this particular url, 
+            the dict entry value will be used as the tld string.
+            
+            For example, the dictionary
+            
+            d = { 'smoking-cessation.org': 'fake', 'whyquit.com' : 'org',}
+            
+            ...would ensure that the domain smoking-cessation.org is recognized
+            as a commercial domain posing as a non-profit domain 
+            rather than a true non-profit, and that whyquit.com (a labor-of-
+            love site) is recognized as a nonprofit rather than a commercial 
+            domain.
+            
+            The value 'fake' is used to identify for-profit sites masquerading
+            as non-profit to allow their identification as such in network
+            partitions. Conversely, the value 'okcom' is used to denote
+            dot-coms that are essentially altruistic by nature.
+            
+            If there is no exception, the final token delimited by periods
+            is used as the TLD string to be returned to the caller, except for 
+            two-character TLD strings (country identifiers). For these,
+            the second-last token delimited by periods is returned. This works
+            in some cases, but there is no reliable algorithm for determining
+            the profit status of international urls.
+            '''
+            TLDExceptions = self.GetProperty('TLDExceptions')
+            if TLDExceptions != None:
+                for e in TLDExceptions.keys():
+                    if e.lower() in url.lower():
+                        return TLDExceptions[e]
+
+            # if we get here there is no exception
+            urlType = urlparse(url)[1].split('.')
+            if len(urlType[-1]) == 2:
+                return  urlType[-2].lower()
+            else:
+                return urlType[-1].lower()
+        except Exception, e:
+            log.Write('in GetUrlTLD( ' + str(url) + ' ): ' + str(e))
+            return '???'
+        
+        
+    def IsForProfitUrlTLD(self,url,returnBoolean = True):
+        """ By default, return True if the TLD applies to for-profit 
+        entities (e.g.,  com and net), False if TLD applies to non-profit 
+        or is unknown. If returnBoolean is False, return 1 for True and
+        0 (zero) for False.
+        """
+        log = Log('IsForProfitUrlTLD',url)
+
+        urlTypeForProfitConstants = {
+            'com' : True,
+            'co' : True,
+            'tv' : True,
+            'us' : True,
+            'info' : True,
+            'google' : True,
+            'icio' : True,
+            'org' : False,
+            'or' : False,
+            'net' : True,
+            'ne' : True,
+            'edu' : False,
+            'ed' : False,
+            'gov' : False,
+            'go' : False,
+            'nhs' : False,
+            'gc' : False,
+            'int' : False,
+            'ad' : False,
+            'mil' : False,
+            'fake' : True,
+            'okcom' : True,
+            '???' : False,
+            }
+        try:
+            isForProfit = urlTypeForProfitConstants[self.GetUrlTLD(url)]
+            if returnBoolean:
+                return isForProfit
+            else: # caller wants an integer return value
+                if isForProfit == True:
+                    return 1
+                else:
+                    return 0
+                
+        except Exception, e:
+            if returnBoolean:
+                return True
+            else:
+                return 1
+
+    def GetUrlTLDConstants(self,url):
+        """ Return a sequence containing two values: an integer constant 
+            representing the type of TLD in the URL, and a float constant
+            for use in vectors, representing the library creator's rather
+            arbitrary assessment of the relative value of the TLD type.
+            Constants are defined in urlutils.py.
+        """
+        log = Log('GetUrlTLDConstant',url)
+        # dictionary of constants for url types
+        urlTypeConstants = {
+            'com' : (DOTCOM,V_DOTCOM),
+            'biz' : (DOTCOM,V_DOTCOM),
+            'co' : (DOTCOM,V_DOTCOM),
+            'icio' : (DOTCOM,V_DOTCOM),
+            'us' : (DOTCOM,V_DOTCOM),
+            'info' : (DOTCOM,V_DOTCOM),
+            'google' : (DOTCOM,V_DOTCOM),
+            'org' : (DOTORG,V_DOTORG),
+            'or' : (DOTORG,V_DOTORG),
+            'net' : (DOTNET,V_DOTNET),
+            'ne' : (DOTNET,V_DOTNET),
+            'edu' : (DOTEDU,V_DOTEDU),
+            'ed' : (DOTEDU,V_DOTEDU),
+            'gov' : (DOTGOV,V_DOTGOV),
+            'go' : (DOTGOV,V_DOTGOV),
+            'nhs' : (DOTGOV,V_DOTGOV), # UK's health system
+            'gc' : (DOTGOV,V_DOTGOV), # Canadian government
+            'int' : (DOTGOV,V_DOTGOV),
+            'ad' : (DOTADM,V_DOTADM),
+            'mil' : (DOTMIL,V_DOTMIL),
+            'fake' : (DOTFAKE,V_DOTFAKE),
+            'okcom' : (OKDOTCOM,V_OKDOTCOM),
+            '???' : (DOTUNK,V_DOTUNK),
+            }
+        try:
+            tld = self.GetUrlTLD(url)
+            return urlTypeConstants[tld]
+        except Exception, e:
+            log.Write('%s in GetUrlTLDConstant: %s in %s' % (str(e), str(tld), str(url)) )
+            return (DOTUNK,V_DOTUNK)
+        
+        
+        
+    def IgnoreFilteredUrl(self, url):
+        log = Log('IgnoreFilteredUrl',url)    
+        try:
+            """
+            # filter based on top-level domains (TLDs) or categories under country codes
+            
+            Return True if the url should be ignored, False otherwise.
+            
+            common TLDs and country codes are:
+            com = company
+            org = non-profit organization
+            net = ISP
+            gov = government
+            mil = military
+            edu = academic institution
+            int = international organization
+            
+            categories under country codes are administered by the 
+            country itself (if at all), so there is a lot of variation. some
+            common categories are:
+            co = company
+            or = non-profit
+            ac = academic institution
+            go = government
+            ad = network administration
+            ne = ISP
+
+            The property filterToKeep should contain two items:
+            1. a list of strings representing the 
+            TLD categories to keep, without any periods before or 
+            after, in lower case. 
+            2. a number indicating the
+            maximum number of items in the result set requested.
+            For example, to keep government, non-profit, and 
+            academic, and get the first 10 matches out of 100,
+            we would use:
+            
+            net.setProperty('filterToKeep', \
+                    [['gov','go','org','or', 'edu','ac',], 100])
+                    
+            TLDs are generally reliable, though 'net' is often
+            abused, and 'org' is sometimes abused.
+            """
+            
+            filterlist = self.GetProperty('filterToKeep')
+            if filterlist != None:
+                try:
+                    filterlist = filterlist[0]
+                    urlType = self.GetUrlTLD(url)
+                    if urlType == 'com':
+                        pass
+                    # strip off country codes
+                    if len(urlType[-1]) == 2:
+                        urlType = urlType[-2].lower()
+                    else:
+                        urlType = urlType[-1].lower()
+                    # keep url if its TLD is in filterlist
+                    if urlType in filterlist:
+                        return False
+                    else:
+                        return True
+                         
+                except Exception, e:
+                    # keep the weird ones
+                    return False
+                        
+            return False
+        
+        except Exception, e:
+            # keep the weird ones
+            return False
+                
+            
+
+########
 
     def PutUrl(self, parentUrlNetItemIdx, urlToAdd, level,properties=None):
         """
@@ -500,7 +815,10 @@ class UrlTree(Object):
             # 'www.a.com' and 'www.a.com/'
             while urlToAdd[-1:] == '/':
                 urlToAdd = urlToAdd[:-1]
-                
+            
+            if self.IgnoreFilteredUrl(urlToAdd) == True:
+                return (None,self.masterItemIdx,False)
+            
             item = self.GetUrlNetItemByUrl(urlToAdd)
             # see if URL is already registered
             if not item:
@@ -512,6 +830,9 @@ class UrlTree(Object):
                 except Exception, e:
                     raise Exception, 'self.netitemclass constructor failed: '+str(e)
                 item.SetProperty('level',level)
+                self.FlagUrlCheck(item,urlToAdd)
+                self.SetUrlTLDProperties(item,urlToAdd)
+                
                 # we can set multiple properties at once via a dictionary -
                 # key-value pairs become properties with name = key, value=value
                 if properties:
@@ -545,6 +866,7 @@ class UrlTree(Object):
                     domainItem = DomainNetItem(domainIdx,domain,self)
                 except Exception, e:
                     raise Exception, 'DomainNetItem constructor failed: '+str(e)
+                self.SetUrlTLDProperties(domainItem,urlToAdd)
                 self.DomainByIndex[domainIdx] = domainItem
                 self.IndexByDomain[domain] = domainIdx
                 self.masterDomainIdx = domainIdx
@@ -610,6 +932,8 @@ class UrlTree(Object):
                 raise Exception, 'self.netitemclass constructor failed: '+str(e)
             
             item.SetProperty('level',0) # always zero for the root url
+            self.FlagUrlCheck(item,urlToAdd)
+            self.SetUrlTLDProperties(item,urlToAdd)
             self.UrlNetItemByIndex[itemIdx] = item
             self.IndexByUrl[urlToAdd] = itemIdx
             self.masterItemIdx = itemIdx
@@ -620,6 +944,7 @@ class UrlTree(Object):
                 domainItem = DomainNetItem(domainIdx,domain,self)
             except Exception, e:
                 raise Exception, 'DomainNetItem constructor failed: '+str(e)
+            self.SetUrlTLDProperties(domainItem,urlToAdd)
             self.DomainByIndex[domainIdx] = domainItem
             self.IndexByDomain[domain] = domainIdx
             self.masterDomainIdx = domainIdx
@@ -869,9 +1194,9 @@ class UrlTree(Object):
                 break
  
 
-    def MapFunctionToParentChildPairs(self,functionToMap,args=None,unique=True):
+    def MapFunctionToParentChildPairs(self,functionToMap,args=None):
         """
-        map a function against each the parent-child index pairs for
+        map a function against each the parent-child index pair for
         each item in network, in ascending index order for parent.
         The mapper function must take 4 arguments:
             parentItemIdx:  index of current parent self.netitemclass
@@ -893,11 +1218,11 @@ class UrlTree(Object):
             if not doContinue:
                 break
  
-    def MapFunctionToUniqueParentChildPairs(self,functionToMap,args=None,unique=True):
+    def MapFunctionToUniqueParentChildPairs(self,functionToMap,args=None):
         """
-        map a function against each the parent-child index pairs for
+        map a function against each unique parent-child index pair for
         each item in network, in ascending index order for parent.
-        The mapper function must take 4 arguments:
+        The mapper function must take 5 arguments:
             parentItemIdx:  index of current parent self.netitemclass
             childItemIdx:   index of current child item
             frequency:      number of times this arc/edge occurs
@@ -1002,7 +1327,7 @@ class UrlTree(Object):
             if not doContinue:
                 break
  
-    def MapFunctionToDomainParentChildPairs(self,functionToMap,args=None,unique=True):
+    def MapFunctionToDomainParentChildPairs(self,functionToMap,args=None):
         """
         map a function against each the parent-child index pairs for
         each item in network, in ascending index order for parent.
@@ -1026,7 +1351,7 @@ class UrlTree(Object):
             if not doContinue:
                 break
  
-    def MapFunctionToUniqueDomainParentChildPairs(self,functionToMap,args=None,unique=True):
+    def MapFunctionToUniqueDomainParentChildPairs(self,functionToMap,args=None):
         """
         map a function against each the parent-child index pairs for
         each item in network, in ascending index order for parent.
@@ -1046,22 +1371,233 @@ class UrlTree(Object):
             item = self.GetDomainByIndex(parentIdx)
             children = {}
             for childIdx in item.GetChildren():
-                try:
-                    count = children[childIdx]
-                    children[childIdx] = count + 1
-                except Exception, e:
-                    children[childIdx] = 1
+                children[childIdx] = 1
 
             keys = children.keys()
             keys.sort()
             for childIdx in keys:
-                doContinue = functionToMap(parentIdx, childIdx, children[childIdx], self, args)
+                doContinue = functionToMap(parentIdx, childIdx, self, args)
+                # print '%d %d' % (parentIdx, childIdx)
                 if not doContinue:
                     break
             if not doContinue:
                 break
 
     # network serializers 
+    def WritePajekNetworkStream(self,
+                                stream,
+                                netname,
+                                useTitles,
+                                urlNet=True,
+                                directed=True,
+                                reverseDirection=False):
+        """
+        This function writes a Pajek network or partition for either URLs or domains
+        """
+        ### first create a directed network
+        log = Log('WritePajekNetworkStream','urlNet:' + str(urlNet) + ', directed:'+str(directed))
+        try:
+            if urlNet == True:
+                netType = 'urls'
+                maxIdx = len(self.UrlNetItemByIndex.keys())
+                vertexMapperFunction = self.MapFunctionToUrlItemList
+                arcOrEdgeMapperFunction = self.MapFunctionToParentChildPairs
+                arcOrEdgeWriter = WritePajekArcOrEdge
+                vertexWriter=WritePajekVertex
+            else:
+                netType = 'domains'
+                maxIdx = len(self.DomainByIndex.keys())
+                vertexMapperFunction = self.MapFunctionToDomainItemList
+                arcOrEdgeMapperFunction = self.MapFunctionToDomainParentChildPairs
+                arcOrEdgeWriter = WritePajekDomainArcOrEdge
+                vertexWriter=WritePajekVertex # same for urls and domains
+                useTitles = False # force it if it isn't already the case
+                
+            stream.write('*Network ' + netType + '_' + netname + '_directed\n')
+            
+            # write vertices by mapping a function to each item in the list
+            
+            stream.write('*Vertices ' + str(maxIdx) + '\n')
+            vertexMapperFunction(functionToMap=vertexWriter,args=(stream,useTitles))
+
+            # write arcs by mapping a function to each parent-child pair in the list.
+
+            stream.write('*Arcs\n')
+            if directed == True:
+                arcOrEdgeMapperFunction(functionToMap=arcOrEdgeWriter,args=(stream,reverseDirection))
+
+            stream.write('*Edges\n')
+            if directed == False:
+                arcOrEdgeMapperFunction(functionToMap=arcOrEdgeWriter,args=stream)
+
+        except Exception, e:
+            self.SetLastError('In WritePajekNetworkStream: ' + str(e))
+            raise
+
+    def WritePajekNetworkFile(self,netname,filename,directed=True,urlNet=True,useTitles=False):
+        """
+        This function writes a Pajek network file, by default a directed URL network 
+        and the levels partition for each. It works by opening the file after adding
+        the extension '.net' and then calling WritePajekNetworkStream().
+        """
+        ### PAJEK
+        stream = None
+        log = Log('WritePajekNetworkFile',netname+':'+filename)
+            
+        try:
+            if useTitles:
+                getTitles = self.GetProperty('getTitles')
+                if not getTitles:
+                     raise Exception, 'useTitles requested and titles not available; '\
+                        + 'set \'getTitles\' property to True before building network'
+            stream = open(filename + ".tmp","wb")
+            self.WritePajekNetworkStream(stream,
+                                netname,
+                                useTitles=useTitles,
+                                urlNet=urlNet,
+                                directed=directed)
+            stream.close()
+            
+            """
+            Pajek always requires DOS-like line endings
+            """
+            ConvertTextFile2DOS(filename + ".tmp",filename + ".net")
+
+        except Exception, e:
+            self.SetLastError('In WritePajekNetworkFile: ' + str(e))
+            if stream:
+                stream.close()
+            raise
+
+    def WritePajekPartitionStream(self,stream,partitionName,propertyName,urlNet=True,valueDict=None):
+        """
+        This function writes a Pajek partition stream, by default a URL partition. 
+        It works by calling either WritePajekPartitionFromPropertyValueLookup() or
+        WritePajekPartitionFromPropertyDict(), depending on whether a translation
+        dictionary is provided.
+        """
+        
+        log = Log('WritePajekNetworkStream','partitionName:' + str(partitionName) \
+                  + ', urlNet:'+str(urlNet) \
+                  + ', propertyName:'+str(propertyName) \
+                  )
+            
+        try:
+            if valueDict != None:
+                self.WritePajekPartitionFromPropertyDict(
+                                            stream=stream,
+                                            partitionName=partitionName,
+                                            propertyName=propertyName,
+                                            dict=valueDict,
+                                            doDomains=(urlNet == False) )
+            else:
+                self.WritePajekPartitionFromPropertyValueLookup(
+                                            stream=stream,
+                                            partitionName=partitionName,
+                                            propertyName=propertyName,
+                                            doDomains=(urlNet == False) )
+        except Exception, e:
+            self.SetLastError('In WritePajekNetworkStream: ' + str(e))
+            raise
+
+    def WritePajekPartitionFile(self,filename,partitionName,propertyName,urlNet=True,valueDict=None):
+        """
+        This function writes a Pajek partition file, by default a URL partition. 
+        It works by opening the file after adding the extension '.clu' and then
+        calling either WritePajekPartitionFromPropertyValueLookup() or
+        WritePajekPartitionFromPropertyDict(), depending on whether a translation
+        dictionary is provided.
+        """
+        
+        ### PAJEK
+        stream = None
+        log = Log('WritePajekPartitionFile','partitionName:' + str(partitionName) \
+                  + ', urlNet:'+str(urlNet) \
+                  + ', propertyName:'+str(propertyName) \
+                  + ', filename:'+str(filename)
+                  )
+            
+        try:
+            stream = open(filename + ".tmp","wb")
+            self.WritePajekPartitionStream(stream,partitionName,
+                        propertyName,urlNet,valueDict)
+            stream.close()
+            
+            """
+            Pajek always requires DOS-like line endings
+            """
+            ConvertTextFile2DOS(filename + ".tmp",filename + ".clu")
+
+        except Exception, e:
+            self.SetLastError('In WritePajekPartitionFile: ' + str(e))
+            if stream:
+                stream.close()
+            raise
+
+    def WritePairNetworkStream(self,
+                                stream,
+                                netname,
+                                urlNet,
+                                uniquePairs,
+                                delimiter):
+        """
+        This function writes a Pajek network or partition for either URLs or domains
+        """
+        ### first create a directed network
+        log = Log('WritePairNetworkStream','urlNet = ' + str(urlNet) + \
+            ', netname:' + str(netname) + ', uniquePairs:'+str(uniquePairs))
+        try:
+            if urlNet == True:
+                netType = 'urls'
+                maxIdx = len(self.UrlNetItemByIndex.keys())
+                if uniquePairs == False:
+                    arcOrEdgeMapperFunction = self.MapFunctionToParentChildPairs
+                else:
+                    arcOrEdgeMapperFunction = self.MapFunctionToUniqueParentChildPairs
+                arcOrEdgeWriter = WritePairArcOrEdge
+            else:
+                netType = 'domains'
+                maxIdx = len(self.DomainByIndex.keys())
+                if uniquePairs == False:
+                    arcOrEdgeMapperFunction = self.MapFunctionToDomainParentChildPairs
+                else:
+                    arcOrEdgeMapperFunction = self.MapFunctionToUniqueDomainParentChildPairs
+                arcOrEdgeWriter = WritePairDomainArcOrEdge
+                
+            # write arcs by mapping a function to each parent-child pair in the list.
+
+            arcOrEdgeMapperFunction(functionToMap=arcOrEdgeWriter,args=(stream,uniquePairs,delimiter))
+            
+        except Exception, e:
+            self.SetLastError('In WritePairNetworkStream: ' + str(e))
+            raise
+
+    def WritePairNetworkFile(self,netname,filename,urlNet=True, uniquePairs = False, delimiter = '\t'):
+        """
+        This function writes a file containing, by default, both URL and domain networks,
+        and the levels partition for each. It works by opening the file after appending
+        the extension 'paj' and then calling WritePajekStream().
+        """
+        
+        stream = None
+        log = Log('WritePairNetworkFile',netname+':'+filename)
+            
+        try:
+            stream = open(filename + ".tmp","wb")
+            self.WritePairNetworkStream(stream,netname,urlNet,uniquePairs,delimiter)
+            stream.close()
+            
+            """
+            Pajek always requires DOS-like line endings
+            """
+            ConvertTextFile2DOS(filename + ".tmp",filename + ".pairs")
+
+        except Exception, e:
+            self.SetLastError('In WritePairNetworkFile: ' + str(e))
+            if stream:
+                stream.close()
+            raise
+
     def WritePajekFile(self,netname,filename,doDomains=True,doOnlyDomains=False,useTitles=False):
         ### PAJEK
         URLFILE = None
@@ -1073,13 +1609,19 @@ class UrlTree(Object):
                 if not getTitles:
                      raise Exception, 'useTitles requested and titles not available; '\
                         + 'set ''getTitles'' property to True before building network'
-            URLFILE = open(filename + ".paj","w")
+            URLFILE = open(filename + ".tmp","wb")
             self.WritePajekStream(netname,URLFILE,doDomains,doOnlyDomains,useTitles)
             URLFILE.close()
+            """
+            Pajek always requires DOS-like line endings
+            """
+            ConvertTextFile2DOS(filename + ".tmp",filename + ".paj")
+                
         except Exception, e:
             self.SetLastError('In WritePajekFile: ' + str(e))
             if URLFILE:
                 URLFILE.close()
+                os.remove(filename + ".tmp")
             raise
 
     def WritePajekStream(self,netname,stream,doDomains=True,doOnlyDomains=False,useTitles=False):
@@ -1145,6 +1687,38 @@ class UrlTree(Object):
                     if idx > maxIdx:
                         self.SetLastError( 'too many keys in partition list: ' + str(idx) )
 
+            doTLDProps = self.GetProperty('TrackTLDProperties')
+            if doTLDProps == None or doTLDProps == False:
+                pass
+            else:
+                # write for-profit and not-for-profit partition
+                self.WritePajekPartitionFromPropertyValueLookup(stream,\
+                    'URL Net TLD For-Profit/Not-For-Profit','forProfitUrlTLD',
+                                                   defaultPartitionNumber=0,
+                                                   doDomains=False)
+                # write for-profit and not-for-profit partition
+                self.WritePajekPartitionFromPropertyValueLookup(stream,\
+                    'URL Net TLD Type','urlTLD',
+                                                   defaultPartitionNumber=DOTUNK,
+                                                   doDomains=False)
+                # write TLD type vector
+                self.WritePajekVectorFromPropertyValueLookup(stream,\
+                    vectorName='URL Net TLD Type',propertyName='urlTLDVector',
+                                                   defaultVectorValue=0.0,
+                                                   doDomains=False)
+                                                
+                                                
+            # see if there are flag paritions we need to process
+            doFlaggedPartitions = (\
+                self.urlsToFlag != None and len(self.urlsToFlag.keys()) > 0)
+            
+            if doFlaggedPartitions:
+                for partition in self.urlsToFlag.keys():
+                    self.WritePajekPartitionFromPropertyValueLookup(stream,\
+                        partition, partition, \
+                                                   defaultPartitionNumber=0, \
+                                                   doDomains=False)
+                
             ########################################
             # now do the domain networks
             ########################################
@@ -1197,16 +1771,36 @@ class UrlTree(Object):
                     stream.write(spaces + str(level) + '\n')
                     if idx > maxIdx:
                         print 'too many keys in partition list: ' + str(idx)
+                if doTLDProps == None or doTLDProps == False:
+                    pass
+                else:
+                    # write for-profit and not-for-profit partition
+                    self.WritePajekPartitionFromPropertyValueLookup(stream,\
+                        'Domain Net TLD For-Profit/Not-For-Profit','forProfitUrlTLD',
+                                                       defaultPartitionNumber=0,
+                                                       doDomains=True)
+                    # write for-profit and not-for-profit partition
+                    self.WritePajekPartitionFromPropertyValueLookup(stream,\
+                        'Domain Net TLD Type','urlTLD',
+                                                       defaultPartitionNumber=DOTUNK,
+                                                       doDomains=True)
+                    # write TLD type vector
+                    self.WritePajekVectorFromPropertyValueLookup(stream,\
+                        vectorName='Domain Net TLD Type',propertyName='urlTLDVector',
+                                                       defaultVectorValue=0.0,
+                                                       doDomains=True)
         except Exception, e:
             self.SetLastError('In WritePajekFile: ' + str(e))
+            log.Write('In WritePajekFile: ' + str(e))
             raise
 
     def WritePajekPartitionFromPropertyValueLookup(self,fd,partitionName,propertyName,
                                                    defaultPartitionNumber=None,
                                                    doDomains=False):
         """
-        Write a Pajek partition using the value of a property on each UrlNetItem-descended
-        node instance. The property value must be an integer.
+        Write a Pajek partition using the value of a property on each 
+        UrlNetItem-descended node instance. The property value must be an 
+        integer.
         """
         log = Log('WritePajekPartitionFromPropertyValueLookup',"%s, %s, %s" % (str(partitionName),str(propertyName),str(dict)))
         try:
@@ -1240,11 +1834,12 @@ class UrlTree(Object):
                                                 defaultPartitionNumber=None,
                                                 doDomains=False):
         """
-        Write a Pajek partition using the value of a property on each UrlNetItem-descended
-        node instance. A dictionary is used to translate property values into integer
-        partition numbers.
+        Write a Pajek partition using the value of a property on each 
+        UrlNetItem-descended node instance. A dictionary is used to 
+        translate property values into integer partition numbers.
         """
-        log = Log('WritePajekPartitionFromPropertyDict',"%s, %s, %s" % (str(partitionName),str(propertyName),str(dict)))
+        log = Log('WritePajekPartitionFromPropertyDict',"%s, %s, %s" % \
+            (str(partitionName),str(propertyName),str(dict)))
         try:
             if doDomains == False:
                 maxIdx = len(self.UrlNetItemByIndex.keys())
@@ -1281,6 +1876,48 @@ class UrlTree(Object):
         except Exception, e:
             self.SetLastError('In WritePajekPartitionFromPropertyDict: ' + str(e))
             raise
+
+    def WritePajekVectorFromPropertyValueLookup(self,fd,vectorName,propertyName,defaultVectorValue,doDomains = False):
+        """
+        Write a Pajek vector using the value of a property on each UrlNetItem-descended
+        node instance. A dictionary is used to translate property values into integer
+        partition numbers.
+        """
+        log = Log('WritePajekVectorFromPropertyValueLookup',"%s, %s, %s" \
+                % (str(vectorName),str(propertyName),str(defaultVectorValue)))
+        try:
+            if doDomains == False:
+                maxIdx = len(self.UrlNetItemByIndex.keys())
+            else:
+                maxIdx = len(self.DomainByIndex.keys())
+            fd.write('\n\n*Vector %s\n*Vertices %d \n' % (vectorName,maxIdx))
+            itemlist = {}
+            if doDomains == False:
+                self.MapFunctionToUrlItemList(BuildListOfItemIndicesWithPropertyValueLookup,
+                                                  args=(propertyName,itemlist,defaultVectorValue))
+            else:
+                self.MapFunctionToDomainItemList(BuildListOfItemIndicesWithPropertyValueLookup,
+                                                  args=(propertyName,itemlist,defaultVectorValue))
+            keys = itemlist.keys()
+            keys.sort()
+            for idx in keys:
+                try:
+                    value = itemlist[idx]
+                except Exception, e:
+                    log.Write('in UrlTree.WritePajekVectorFromPropertyValueLookup, no value for item with index %d' % (idx))
+                    value = None
+                if value == None:
+                        value = 0.0
+                valuestr = '%.4f' % (value * 100.0)
+                spaces = ' '*(8-len(valuestr))
+                fd.write(spaces + str(value) + '\n')
+                if idx > maxIdx:
+                    self.SetLastError( 'too many keys in partition list: ' + str(idx) )
+        except Exception, e:
+            log.Write('In WritePajekVectorFromPropertyValueLookup: ' + str(e))
+            self.SetLastError('In WritePajekVectorFromPropertyValueLookup: ' + str(e))
+            raise
+
 
     def WriteGuessFile(self,filename,doUrlNetwork=True,useTitles=False):
         """
@@ -1471,9 +2108,9 @@ def main(tests=range(1,numtests+1)):
         if ret:
             testfd=open('test1.txt','w')
             testfd.write('********** URL Network ***************\n\n')
-            x.MapFunctionToUrlNetwork(PrintHierarchy,args=testfd)
+            x.MapFunctionToUrlNetwork(PrintHierarchy,args=(testfd,False))
             testfd.write('\n\n\n\n********** Domain Network ***************\n\n')
-            x.MapFunctionToDomainNetwork(PrintHierarchy,args=testfd)
+            x.MapFunctionToDomainNetwork(PrintHierarchy,args=(testfd,False))
             x.WritePajekFile('test1','test1')
             x.WriteGuessFile('test1urls')            # url network
             x.WriteGuessFile('test1domains',False)      #domain network
@@ -1486,9 +2123,9 @@ def main(tests=range(1,numtests+1)):
         if ret:
             testfd=open('test2.txt','w')
             testfd.write('********** URL Network ***************\n\n')
-            x.MapFunctionToUrlNetwork(PrintHierarchy,args=testfd)
+            x.MapFunctionToUrlNetwork(PrintHierarchy,args=(testfd,False))
             testfd.write('\n\n\n\n********** Domain Network ***************\n\n')
-            x.MapFunctionToDomainNetwork(PrintHierarchy,args=testfd)
+            x.MapFunctionToDomainNetwork(PrintHierarchy,args=(testfd,False))
             x.WritePajekFile('test2','test2')
             x.WriteGuessFile('test2urls')            # url network
             x.WriteGuessFile('test2domains',False)      #domain network
@@ -1501,9 +2138,9 @@ def main(tests=range(1,numtests+1)):
         if ret:
             testfd=open('test3.txt','w')
             testfd.write('********** URL Network ***************\n\n')
-            x.MapFunctionToUrlNetwork(PrintHierarchy,args=testfd)
+            x.MapFunctionToUrlNetwork(PrintHierarchy,args=(testfd,False))
             testfd.write('\n\n\n\n********** Domain Network ***************\n\n')
-            x.MapFunctionToDomainNetwork(PrintHierarchy,args=testfd)
+            x.MapFunctionToDomainNetwork(PrintHierarchy,args=(testfd,False))
             x.WritePajekFile('test3','test3')
             x.WriteGuessFile('test3urls')            # url network
             x.WriteGuessFile('test3domains',False)      #domain network
@@ -1588,12 +2225,12 @@ def main(tests=range(1,numtests+1)):
         if ret:
             testfd=open('test4.txt','w')
             testfd.write('********** URL Network ***************\n\n')
-            x.MapFunctionToUrlNetwork(PrintHierarchy,args=testfd)
+            x.MapFunctionToUrlNetwork(PrintHierarchy,args=(testfd,False))
             testfd.write('\n\n\n\n********** Domain Network ***************\n\n')
-            x.MapFunctionToDomainNetwork(PrintHierarchy,args=testfd)
+            x.MapFunctionToDomainNetwork(PrintHierarchy,args=(testfd,False))
             x.WritePajekFile('test4','test4')
             x.WriteGuessFile('test4urls')            # url network
-            x.WriteGuessFile('test4domains',False)      #domain network
+            x.WriteGuessFile('test4domains',doUrlNetwork=False) #domain network
             testfd.close()
     
     log.altfd.close()

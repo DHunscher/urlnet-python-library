@@ -34,6 +34,7 @@ from log import Log, logging, file_only
 import log
 from urltree import UrlTree
 from urlutils import *
+from clickprobabilities import probabilityByPositionAllClicks
 
 
      
@@ -42,6 +43,37 @@ from urlutils import *
 ###################################################################
 
 
+
+def computeResultSetBasedProbabilityVector(network,numberOfSiblings,parentProbability):
+    """
+        Use a tailored algorithm to generate the probability distribution for the children of this UrlNetItem.
+        Set the 'pos_prob' property on each child item to its probability from the distribution.
+        The sum of the probabilities in this distribution must add up to the value passed as parentProbability.
+        Invoke the same function recursively on each child item, passing the network, the child item,
+        and its probability from the distribution.
+    """
+    network.ResetLastError()
+    probabilityVector = None
+    try:
+        log = Log("SearchEngineTree module's computeDescendingStraightLineProbabilityVector")
+        probabilityVector =  [network.probabilityDefault] * numberOfSiblings
+        if parentProbability <= network.probabilityDefault:
+            return probabilityVector
+        else:
+            # construct a probability vector for this item
+            """
+                Use the click probabilities from the entire Windows Live Search data set 
+                (12.2 million clicks) as the probability vector.
+            """
+            for i in range(0,min(numberOfSiblings,len(probabilityByPositionAllClicks))):
+                # vector is zero-based, range is 1-based hence [i-1] indexing
+                probabilityVector[i] = probabilityByPositionAllClicks[i]*parentProbability
+                
+        return probabilityVector
+    except Exception, e:
+        network.SetLastError( "in SearchEngineTree module's computeResultSetBasedProbabilityVector: " + str(e) )
+        raise Exception, e
+        pass
 
 def computeDescendingStraightLineProbabilityVector(network,numberOfSiblings,parentProbability):
     """
@@ -256,6 +288,24 @@ class SearchEngineTree(UrlTree):
         try:
             if currentLevel == None and '://' not in startUrl:
                 (queryURL,url,Urls) = self.GetSEResultSet(query=startUrl,putRoot=True)
+                
+                # check URLs for ignorable text, if any is defined
+                if self.ignorableText != None and len(self.ignorableText) > 0:
+                    massagedUrls = []
+                    for u in Urls:
+                        ignore = False
+                        for t in self.ignorableText:
+                            if t in u:
+                                ignore = True
+                                break
+                        if ignore:
+                            pass
+                        else:
+                            massagedUrls.append(u)
+                    Urls = massagedUrls
+                    
+                ret = self.BuildUrlForest(self, Urls, level=1, parentIdx=parentItemIdx)
+                return ret
                 ret = self.BuildUrlForest(Urls, level=1, parentIdx=parentItemIdx)
                 return ret
             else:
@@ -275,7 +325,18 @@ class SearchEngineTree(UrlTree):
 
         try:
             (queryURL,url,Urls) = self.GetSEResultSet(query=query,putRoot=False)
-            
+            """massagedUrls = []
+            for u in Urls:
+                ignore = False
+                for t in self.ignorableText:
+                    if t in u:
+                        ignore = True
+                        break
+                if ignore:
+                    pass
+                else:
+                    massagedUrls.append(u)
+            Urls = massagedUrls"""
             return UrlTree.BuildUrlTreeWithPlaceholderRoot(self,rootPlaceholder,Urls)
         except Exception, e:
             raise Exception, 'in SearchEngineTree.BuildUrlTreeWithPlaceholderRoot: ' + str(e)
@@ -293,7 +354,20 @@ class SearchEngineTree(UrlTree):
         self.ResetLastError()
         log = Log('SearchEngineTree.BuildUrlForestWithPhantomRoot', query)
         try:
-            (queryURL,url,anchorlist) = self.GetSEResultSet(query=query,putRoot=False)
+            (queryURL,url,Urls) = self.GetSEResultSet(query=query,putRoot=False)
+            massagedUrls = []
+            for u in Urls:
+                ignore = False
+                for t in self.ignorableText:
+                    if t in u:
+                        ignore = True
+                        break
+                if ignore:
+                    pass
+                else:
+                    massagedUrls.append(u)
+            Urls = massagedUrls
+            
             self.isPhantomRoot=True
             phantomRoot = queryURL
             parts = urlparse(phantomRoot)
@@ -301,11 +375,11 @@ class SearchEngineTree(UrlTree):
             self.rootScheme = parts.scheme
             self.rootHost = parts.hostname
             myBase = phantomRoot
-            if len(anchorlist) == 0:
+            if len(Urls) == 0:
                 return False # no outlinks is *not* OK
             url = None # free up memory
 
-            successful = UrlTree.BuildUrlForest(self,Urls=anchorlist,parentBase=myBase)
+            successful = UrlTree.BuildUrlForest(self,Urls=Urls,parentBase=myBase)
             if not successful:
                 log.Write( 'BuildUrlForest may have failed for url: ' + str(phantomRoot) )
             return True
@@ -314,7 +388,31 @@ class SearchEngineTree(UrlTree):
                               + '\nquery: ' + query 
                               )
             return False
-
+        
+    def AssignDomainProbability(self,item,old_prob = None):
+        '''
+        
+        '''
+        self.ResetLastError()
+        log = Log('SearchEngineTree.AssignDomainProbability')
+        try:
+            domainItem = self.DomainByIndex[item.GetDomainIdx()]
+            domain_prob = domainItem.GetProperty('max_domain_prob')
+            max_domain_prob = domain_prob
+            item_prob = item.GetProperty('pos_prob')
+            if max_domain_prob:
+                if item_prob > max_domain_prob:
+                    max_domain_prob = item_prob
+            else:
+                max_domain_prob = item_prob
+                
+            # only update the property value on the domain item
+            # if it actually changed
+            if max_domain_prob != domain_prob:
+                domainItem.SetProperty('max_domain_prob',max_domain_prob)
+        except Exception, e:
+            self.SetLastError( 'in SearchEngineTree.AssignDomainProbability: ' + str(e) )
+        
     def AssignTopLevelProbabilities(self):
         """
         Assign hit probabilities by position in the set of result set urls, based
@@ -338,10 +436,12 @@ class SearchEngineTree(UrlTree):
                 if item.GetProperty('pos_prob') == None:
                     if i < len(self.probabilityVector):
                         item.SetProperty('pos_prob',self.probabilityVector[i])
+                        self.AssignDomainProbability(item)
                         if item.GetNumberOfChildren() > 0:
                             self.AssignProbabilitiesToChildUrls(item,self.probabilityVector[i])
                     else:
                         item.SetProperty('pos_prob',self.probabilityDefault)
+                        # self.AssignDomainProbability(item)
                         if item.GetNumberOfChildren() > 0:
                             self.AssignProbabilitiesToChildUrls(item,self.probabilityDefault)
                 else:
@@ -350,10 +450,12 @@ class SearchEngineTree(UrlTree):
                         # only override if we can do better than the probability already set
                         if self.probabilityVector[i] > old_prob:
                             item.SetProperty('pos_prob',self.probabilityVector[i])
+                            self.AssignDomainProbability(item, old_prob)
                         if item.GetNumberOfChildren() > 0:
                             self.AssignProbabilitiesToChildUrls(item,self.probabilityVector[i])
                     else:
                         item.SetProperty('pos_prob',self.probabilityDefault)
+                        #self.AssignDomainProbability(item)
                         if item.GetNumberOfChildren() > 0:
                             self.AssignProbabilitiesToChildUrls(item,self.probabilityDefault)
             return True
@@ -386,12 +488,14 @@ class SearchEngineTree(UrlTree):
                 pos_prob = item.GetProperty('pos_prob')
                 if pos_prob == None:
                     item.SetProperty('pos_prob',probability)
+                    self.AssignDomainProbability(item)
                     if item.GetNumberOfChildren() > 0:
                         # assume for now that child probabilities are distributed evenly
                         # one could also try assuming all child URLs would be visited
                         self.AssignProbabilitiesToChildUrls(item,probability)
                 elif pos_prob < probability:
                     item.SetProperty('pos_prob',probability)
+                    self.AssignDomainProbability(item)
                     if item.GetNumberOfChildren() > 0:
                         # recompute child probabilities
                         self.AssignProbabilitiesToChildUrls(item,probability)
@@ -409,8 +513,9 @@ class SearchEngineTree(UrlTree):
         stream = None
         log = Log('WritePajekFile',netname+':'+filename)
         maxIdx = len(self.UrlNetItemByIndex.keys())
+        maxDomainIdx = len(self.DomainByIndex.keys())
         try:
-            stream = open(filename + ".paj","w")
+            stream = open(filename + ".tmp","wb")
             self.WritePajekStream(netname,stream,doDomains,doOnlyDomains=doOnlyDomains,useTitles=useTitles)
 
             # calculate and write probability vector, if appropriate
@@ -420,7 +525,7 @@ class SearchEngineTree(UrlTree):
             if not self.AssignTopLevelProbabilities():
                 raise Exception, self.GetLastError()
             
-            stream.write('\n\n*Vector PositionalProbabilities\n*Vertices ' + str(maxIdx) + ' \n')
+            stream.write('\n\n*Vector Url Net PositionalProbabilities\n*Vertices ' + str(maxIdx) + ' \n')
             itemlist = {}
             self.MapFunctionToUrlItemList(
                     BuildListOfItemIndicesWithPropertyValueLookup,
@@ -435,14 +540,44 @@ class SearchEngineTree(UrlTree):
                     value = None
                 if value == None:
                         value = 0.0
-                valuestr = '%.4f' % (value)
+                valuestr = '%.4f' % (value * 100.0)
                 spaces = ' '*(8-len(valuestr))
                 stream.write(spaces + str(value) + '\n')
                 if idx > maxIdx:
                     self.SetLastError( 'too many keys in partition list: ' + str(idx) )
 
+            self.WritePajekVectorFromPropertyValueLookup(stream,\
+                    vectorName='Domain Net SummedPositionalProbabilities',\
+                    propertyName='max_domain_prob',defaultVectorValue=0.0,doDomains = True)
+            '''
+            stream.write('\n\n*Vector Domain Net MaxPositionalProbabilities\n*Vertices ' + str(maxIdx) + ' \n')
+            itemlist = {}
+            self.MapFunctionToDomainItemList(
+                    BuildListOfItemIndicesWithPropertyValueLookup,
+                    args=['pos_prob',itemlist,0.0])
+            keys = itemlist.keys()
+            keys.sort()
+            for idx in keys:
+                try:
+                    value = itemlist[idx]
+                except Exception, e:
+                    log.Write('in SearchEngineTree.WritePajekFile, no value for item with index %d' % (idx))
+                    value = None
+                if value == None:
+                        value = 0.0
+                valuestr = '%.4f' % (value * 100.0)
+                spaces = ' '*(8-len(valuestr))
+                stream.write(spaces + str(value) + '\n')
+                if idx > maxDomainIdx:
+                    self.SetLastError( 'too many keys in partition list: ' + str(idx) )
+            '''
 
             stream.close()
+            """
+            Pajek always requires DOS-like line endings
+            """
+            ConvertTextFile2DOS(filename + ".tmp",filename + ".paj")
+            
         except Exception, e:
             self.SetLastError('In SearchEngineTree.WritePajekFile: ' + str(e))
             if stream:

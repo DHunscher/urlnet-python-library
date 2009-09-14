@@ -43,6 +43,40 @@ from urlnetitem import UrlNetItem
 from domainnetitem import DomainNetItem
 from log import Log
 
+
+# constants for url top-level domain types returned by UrlTree.GetUrlTLDConstant
+DOTCOM   = 1
+DOTORG   = 2
+DOTNET   = 3
+DOTEDU   = 4
+DOTGOV   = 5
+DOTADM   = 6
+DOTMIL   = 7
+OKDOTCOM = 8
+# imposter
+DOTFAKE  = 9
+# unknown
+DOTUNK   = 999
+
+V_DOTCOM  = 0.01
+V_DOTORG  = 0.5
+V_DOTNET  = 0.01
+V_DOTEDU  = 0.5
+V_DOTGOV  = 0.5
+V_DOTADM  = 0.01
+V_DOTMIL  = 0.01
+V_OKDOTCOM = 0.25
+# imposter
+V_DOTFAKE = 0.01
+# unknown
+V_DOTUNK  = 0.01
+
+# 3 types of URLs in terms of "goodness"
+
+GOOD_DOMAIN = 21
+OK_DOMAIN = 1
+BAD_DOMAIN = 3
+
 # URI schemes we will try to follow
 PERMISSIBLE_SCHEMES = ('http','https','ftp','sftp')
 
@@ -91,6 +125,14 @@ def read_config_file():
         return None
 
 def GetConfigValue(name):
+    '''
+    Get a single configuraton value by name. If the config file is missing
+    or has no lines, None is returned. If the desired name is not found,
+    None is returned. If the line is malformed (i.e. not in the form
+    <name>=<value>), None is returned. Otherwise, the value is returned,
+    stripped of leading and trailing spaces. The name is case-insensitive,
+    but the value's case status is maintained as-is.
+    '''
     lines = read_config_file()
     if lines == None:
         return None
@@ -114,10 +156,17 @@ def GetConfigValue(name):
         return None
 
 def GetTimestampString():
+    '''
+    Get a text string containing the current local time in the form
+    yyyy-mm-dd--hh-mi-ss. Used in creating unique filenames.
+    '''
     return strftime('%Y-%m-%d--%H-%M-%S',localtime())
     
 
 def RemoveRealmPrefix(name):
+    '''
+    Remove the realm prefix (e.g., ftp://) from a url.
+    '''
     parts = urlparse(name)
     if len(parts[0]) > 0:
         parts = list(parts)
@@ -130,6 +179,8 @@ def RemoveRealmPrefix(name):
         
         
 def RemoveNonPrintableChars(name):
+    '''Replace control characters in a string with underscores.
+    '''
     log = Log('RemoveNonPrintableChars',name)
     out = ''
     for c in name:
@@ -240,6 +291,16 @@ def BuildListOfItemIndicesWithPropertyValueLookup(item,net,level,args):
     return True
 
 def GetNameOfItem(item,idx,useTitles):
+    '''
+    Get the name of a url item, e.g. for use as the name of a vertex in
+    a network. If the useTitles argument is True, the value of the
+    'title' property on the UrlNetItem-descended entity passed as the item 
+    argument is used as the name. If the property value is missing
+    when expected, or useTitles is False, the item's GetName member
+    functions is invoked to provide the value. If this function returns
+    None or an empty string, a string is created using the index of the
+    item prefixed by the letter 'v' for vertex.
+    '''
     name = None
     if useTitles:
         name = item.GetUrl().GetProperty('title')
@@ -251,7 +312,8 @@ def GetNameOfItem(item,idx,useTitles):
     return name
 
 ###################################################################
-#####   a set of mapper functions for building Pajek networks #####
+#####  a set of mapper functions for building Pajek networks. #####
+#####  The function names are descriptive of their function.  #####
 ###################################################################
 
 
@@ -261,16 +323,14 @@ def WritePajekVertex(item,net,level,args):
         FILE = args[0]
         useTitles = args[1]
         idx = item.GetIdx()
-        name = GetNameOfItem(item,idx,useTitles)
-        #name = RemoveNonPrintableChars(name)
-        name = RemoveRealmPrefix(name)
+        name = RemoveRealmPrefix(GetNameOfItem(item,idx,useTitles))
         trimlength = net.GetProperty('nodeLengthLimit')
         if trimlength != None and len(name) > trimlength:
             name = name[0:trimlength] + '...'
         FILE.write('       ' + str(idx) + ' "' + name + '"   \n')
         return True
     except Exception, e:
-        log.Write('Exception in WriteGuessDomainArc: %s' % (str(e)))
+        log.Write('Exception in WritePajekVertex: %s' % (str(e)))
         raise
 
 def WritePajekArcOrEdge(fromIdx,toIdx,net,args):
@@ -293,7 +353,74 @@ def WritePajekArcOrEdge(fromIdx,toIdx,net,args):
         FILE.write('       ' + str(fromIdx) + '       ' + str(toIdx) + ' ' + str(weight) + ' \n')
         return True
     except Exception, e:
-        log.Write('Exception in WriteGuessDomainArc: %s' % (str(e)))
+        log.Write('Exception in WritePajekArcOrEdge: %s' % (str(e)))
+        raise
+     
+def WritePairArcOrEdge(fromIdx,toIdx,net,args):
+    '''
+    Use this writer function to produce a list of simple edge definitions
+    (fromurl  tourl). 
+    If uniquePairs is not True, write 1 edge definition per parent-child pair 
+    '''
+    log = Log('WritePairArcOrEdge',"%d %d" % (fromIdx,toIdx))
+    try:
+        FILE = args[0]
+        uniquePairs = args[1]
+        delimiter = args[2]
+        useTitles = False # for now
+        
+        # get names of items
+        fromItem = net.GetUrlNetItemByIndex(fromIdx)
+        fromName = RemoveRealmPrefix(GetNameOfItem(fromItem,fromIdx,useTitles))
+        trimlength = net.GetProperty('nodeLengthLimit')
+        if trimlength != None and len(fromName) > trimlength:
+            fromName = fromName[0:trimlength] + '...'
+        toItem = net.GetUrlNetItemByIndex(toIdx)
+        toName = RemoveRealmPrefix(GetNameOfItem(toItem,toIdx,useTitles))
+        trimlength = net.GetProperty('nodeLengthLimit')
+        if trimlength != None and len(toName) > trimlength:
+            toName = toName[0:trimlength] + '...'
+        # get child weight 
+        weight = fromItem.GetChildHitCount(toIdx)
+        # weight can't be zero
+        if weight == 0 or uniquePairs == True:
+            weight = 1
+        # write simple edge definition
+        while(weight > 0):
+            FILE.write(str(fromName) + str(delimiter) + str(toName) + ' \n')
+            weight = weight - 1
+        return True
+    except Exception, e:
+        log.Write('Exception in WritePairArcOrEdge: %s' % (str(e)))
+        raise
+     
+def WritePairDomainArcOrEdge(fromIdx,toIdx,net,args):
+    '''
+    Use this writer function to produce a list of simple edge definitions
+    (fromname  toname). 
+    If uniquePairs is not True, write 1 edge definition per parent-child pair 
+    '''
+    log = Log('WritePairArcOrEdge',"%d %d args=%s" % (fromIdx,toIdx,str(args)))
+    try:
+        FILE = args[0]
+        uniquePairs = args[1]
+        # get names of items
+        fromItem = net.GetDomainByIndex(fromIdx)
+        fromName = fromItem.GetName()
+        toItem = net.GetDomainByIndex(toIdx)
+        toName = toItem.GetName()
+        # get child weight 
+        weight = fromItem.GetChildHitCount(toIdx)
+        # weight can't be zero
+        if weight == 0 or uniquePairs == True:
+            weight = 1
+        # write simple edge definition
+        while(weight > 0):
+            FILE.write(str(fromName) + '       ' + str(toName) + ' \n')
+            weight = weight - 1
+        return True
+    except Exception, e:
+        log.Write('Exception in WritePairArcOrEdge: %s' % (str(e)))
         raise
      
 def WritePajekDomainArcOrEdge(fromIdx,toIdx,net,args):
@@ -325,6 +452,9 @@ def WritePajekDomainArcOrEdge(fromIdx,toIdx,net,args):
 ###################################################################
 
 def ReplaceIllegalChars(name):
+    '''
+    Make a string compatible with the requirements of a Java name. 
+    '''
     log = Log('ReplaceIllegalChars',name)
     out = ''
     for c in name:
@@ -335,6 +465,13 @@ def ReplaceIllegalChars(name):
     return out
         
 def WriteGuessVertex(item,net,level,args):
+    '''
+    Write a single Guess vertex for a url network, adding additional
+    attributes per the additionalDomainAttrs argument. Each attribute
+    must also be the name of a property found on each UrlNetItem 
+    descendant; the value of that property must match the Java type
+    of the declaration as described in urltree.WriteGuessStream.
+    '''
     log = Log('WriteGuessVertex',item.GetName())
     try:
         #    nodedef = 'nodedef>name VARCHAR, url VARCHAR,domain VARCHAR'
@@ -397,6 +534,13 @@ def WriteGuessArc(fromIdx,toIdx,frequency,net,args):
      
 
 def WriteGuessDomainVertex(item,net,level,args):
+    '''
+    Write a single Guess vertex for a domain network. adding additional
+    attributes per the additionalDomainAttrs argument. Each attribute
+    must also be the name of a property found on each DomainNetItem 
+    descendant; the value of that property must match the Java type
+    of the declaration as described in urltree.WriteGuessDomainStream.
+    '''
     log = Log('WriteGuessDomainVertex',item.GetName())
     #    nodedef = 'nodedef>name VARCHAR,domain VARCHAR'
     try:
@@ -450,6 +594,10 @@ def WriteGuessDomainArc(fromIdx,toIdx,frequency,net,args):
         raise
 
 def saveTree(tree,path):
+    '''
+    Use the Pickle module to save a UrlTree-descended instance to disk.
+    '''
+    
     log = Log('saveTree','path=%s' % str(path) )
     try:
         fo=open(path, 'wb')
@@ -461,6 +609,11 @@ def saveTree(tree,path):
         
      
 def loadTree(path):
+    '''
+    Use Pickle to load a UrlTree-descended instance back into memory from
+    a file saved using the saveTree function.
+    '''
+    
     log = Log('loadTree','path=%s' % str(path) )
     try:
         fi=open(path, 'rb')
@@ -472,6 +625,41 @@ def loadTree(path):
         raise
         
      
+    
+def ConvertTextFile2DOS(infilename, outfilename, removeInFileOnSuccess = True):
+    '''
+    Pajek is a Windows program, and always expects its file format to use
+    DOS line endings (CR-LF), even when run under Wine (as I do on my Macbook
+    using CrossOver). This routine is used to ensure that a Pajek output file
+    always has DOS-style line endings.
+    '''
+    outfd = None
+    infd = None
+    try:
+        infd = open(infilename,"rb")
+        outfd = open(outfilename,"wb")
+        for line in infd:
+            # strip terminating newline
+            if len(line) > 0 and line[-1] == '\n':
+                line = line[:-1]
+            if len(line) > 0 and line[-1] != '\r':
+                outfd.write(line + '\r\n')
+            elif len(line) == 0: # empty line
+                outfd.write('\r\n')
+            else:
+                outfd.write(line + '\n')
+        
+        outfd.close()
+        infd.close()
+        if removeInFileOnSuccess:
+            os.remove(infilename)
+    except Exception, e:
+        if outfd:
+            outfd.close()
+        if infd:
+            infd.close()
+        raise
+
 ###################################################################
 ###################################################################
 ###################################################################

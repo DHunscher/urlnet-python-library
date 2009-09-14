@@ -211,7 +211,7 @@ class NCBIAuthorCosmosTree(NCBITree):
         URLFILE = None
         log = Log('NCBIAuthorCosmosTree.WritePajekFile',netname+':'+filename)
         try:
-            URLFILE = open(filename + ".paj","w")
+            URLFILE = open(filename + ".tmp","w")
             self.WritePajekStream(netname,URLFILE)
             maxIdx = len(self.UrlNetItemByIndex.keys())
             URLFILE.write('\n\n*Partition NodeTypes: 0=author,1=pub,2=MeSH cat\n*Vertices ' + str(maxIdx) + ' \n')
@@ -228,6 +228,11 @@ class NCBIAuthorCosmosTree(NCBITree):
                 if idx > maxIdx:
                     self.SetLastError( 'too many keys in partition list: ' + str(idx) )
             URLFILE.close()
+            """
+            Pajek always requires DOS-like line endings
+            """
+            ConvertTextFile2DOS(filename + ".tmp",filename + ".paj")
+            
         except Exception, e:
             self.SetLastError('In NCBIAuthorCosmosTree.WritePajekFile: ' + str(e))
             if URLFILE:

@@ -102,6 +102,13 @@ class RegexQueryUrl(Url):
                 else:
                     raise Exception, 'unsupported regex pattern type "' + ptype + '" in RegexQueryUrl.GetAnchorList()'
                 items = [page,]
+                """
+                The following code can handle the simple case of applying one regex pattern to the starting page,
+                or multiple regex expressions to the starting page; it can also handle the most complex case,
+                where the set of regex expressions is used to derive one or more text chunks, each of which is
+                then processed using the remaining regex expressions in the list, allowing the caller to apply
+                successively more specific regex expressions to the text.
+                """
                 for regexPattern in regexExprs:
                     results = []
                     for item in items:
@@ -109,7 +116,34 @@ class RegexQueryUrl(Url):
                             results = results + re.findall(regexPattern,item,self.findall_args)
                         else:
                             results = results + re.findall(regexPattern,item)
-                    self.anchors = self.anchors + results
+                    # only replace items with results if results list is not empty
+                    if len(results) > 0:
+                        # apply regex patterns to set derived from the list we just obtained
+                        items = results
+                        
+                """
+                We may have got more than we needed; see if we need to filter. 
+                If we are filtering, we most likely retrieved more than we needed.
+                If so, limit the results returned to the number specified as
+                the desired limit in the network constructor.
+                """
+                filtering = self.network.GetProperty('filterToKeep')
+                if filtering:
+                    numResults = self.network.GetProperty('numSearchEngineResults')
+                    
+                    newItems = []
+                    count = 0
+                    for item in items:
+                        if self.network.IgnoreFilteredUrl(item):
+                            pass
+                        else:
+                            newItems.append(item)
+                            count = count + 1
+                            if count == numResults:
+                                break
+                    items = newItems
+                    
+                self.anchors = items
 
                 for i in range(0,len(self.anchors)):
                     self.anchors[i] = self.anchors[i].strip()
@@ -163,9 +197,9 @@ class RegexQueryUrl(Url):
                     #print urls[i]
                     i = i + 1
                     
-                
                 i = 0
                 for url in self.anchors:
+                    # get rid of in-page links
                     url = url.split('#')[0]
                     url2 = self.network.MassageUrl(url,-1)
                     if url2:
