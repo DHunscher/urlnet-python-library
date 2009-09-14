@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# $Id$
 # logging3.py
 from os.path import join
 

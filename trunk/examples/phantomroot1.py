@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# $Id$
 # phantomroot1.py
 from urlnet.urltree import UrlTree
 

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# $Id$
 # urltree2.py
 from urlnet.urltree import UrlTree
 net = UrlTree(_maxLevel=3)

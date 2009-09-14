@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# $Id$
 # savetreeloadtree1.py
 
 from urlnet.urltree import UrlTree

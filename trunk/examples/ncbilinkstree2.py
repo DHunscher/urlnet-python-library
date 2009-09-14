@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# $Id$
 from os.path import join
 import sys
 import os

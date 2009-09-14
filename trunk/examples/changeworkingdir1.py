@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# $Id$
 # changeworkingdir1.py
 
 from urlnet.urltree import UrlTree

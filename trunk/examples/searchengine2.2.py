@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# $Id$
 from urlnet.log import Log, logging, altfd
 from urlnet.aoltree import AOLTree
 from urlnet.urlutils import PrintHierarchy
