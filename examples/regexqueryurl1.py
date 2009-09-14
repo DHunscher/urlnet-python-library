@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# $Id$
 # regexqueryurl1.py
 from urlnet.urltree import UrlTree
 from urlnet.regexqueryurl import RegexQueryUrl

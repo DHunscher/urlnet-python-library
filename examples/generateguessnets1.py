@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# $Id$
 # generateguessnets1.py
 from urlnet.urltree import UrlTree
 

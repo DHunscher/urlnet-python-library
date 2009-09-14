@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# $Id$
 # technorati1.py
 
 # build networks using the Technorati API

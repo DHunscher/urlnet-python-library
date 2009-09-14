@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# $Id$
 # logging2.py
 from urlnet.urltree import UrlTree
 from urlnet.urlutils import GetConfigValue

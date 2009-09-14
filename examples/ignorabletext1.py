@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# $Id$
 # ignorabletext.py
 from urlnet.urltree import UrlTree
 

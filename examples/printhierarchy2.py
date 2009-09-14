@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# $Id$
 # printhierarchy2.py
 from urlnet.urltree import UrlTree
 

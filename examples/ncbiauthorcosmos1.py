@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# $Id$
 # ncbiauthorcosmos1.py
 import sys
 

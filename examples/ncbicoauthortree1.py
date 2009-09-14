@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# $Id$
 # ncbicoauthortree1.py
 import sys
 

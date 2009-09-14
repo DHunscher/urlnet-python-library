@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# $Id$
 # ignorablesandredirects1.py
 # This one can take a while to run!
 

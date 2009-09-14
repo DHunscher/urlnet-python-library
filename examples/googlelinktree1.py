@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# $Id$
 # linktree1.py
 
 import sys

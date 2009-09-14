@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# $Id$
 # urltree1.py
 from urlnet.urltree import UrlTree
 net = UrlTree()
