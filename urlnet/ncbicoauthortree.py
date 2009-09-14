@@ -168,10 +168,15 @@ class NCBICoAuthorTree(NCBITree):
         URLFILE = None
         log = Log('NCBICoAuthorTree.WritePajekFile',netname+':'+filename)
         try:
-            URLFILE = open(filename + ".paj","w")
+            URLFILE = open(filename + ".tmp","w")
             self.WritePajekStream(netname,URLFILE)
 
             URLFILE.close()
+            """
+            Pajek always requires DOS-like line endings
+            """
+            ConvertTextFile2DOS(filename + ".tmp",filename + ".paj")
+            
         except Exception, e:
             self.SetLastError('In NCBICoAuthorTree.WritePajekFile: ' + str(e))
             if URLFILE:

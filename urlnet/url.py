@@ -384,6 +384,7 @@ class Url(Object):
             parser = HTMLParser(NullFormatter())
             parser.feed(page)
             self.anchors = parser.anchorlist
+            
             return self.anchors
                  
         except Exception, inst:

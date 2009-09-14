@@ -174,11 +174,15 @@ class NCBILinksTree(NCBITree):
         URLFILE = None
         log = Log('NCBILinksTree.WritePajekFile',netname+':'+filename)
         try:
-            URLFILE = open(filename + ".paj","w")
+            URLFILE = open(filename + ".tmp","w")
             self.WritePajekStream(netname,URLFILE)
             # write partition based on a dictionary of names:integer values
             self.WritePajekPartitionFromPropertyDict(URLFILE,'NodeTypes','db',self.dbDict)
             URLFILE.close()
+            """
+            Pajek always requires DOS-like line endings
+            """
+            ConvertTextFile2DOS(filename + ".tmp",filename + ".paj")
         except Exception, e:
             self.SetLastError('In NCBILinksTree.WritePajekFile: ' + str(e))
             if URLFILE:
