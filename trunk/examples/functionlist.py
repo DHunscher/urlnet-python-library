@@ -499,6 +499,7 @@ functionList = \
     'data_warehouse.rulePromptStatus.getDBUserForDBName',
     'data_warehouse.rulePromptStatus.doRun',
     'data_warehouse.rulePromptStatus.__main__',
+    'db.query',
     'dbConnect.getDBConnection',
     'dbConnect.getDBRouterConnection',
     'dbConnect.getUserID',

@@ -45,7 +45,7 @@ def main():
         os.chdir(workingDir)
         myLog = urlnet.log.Log('main')
         urlnet.log.logging=True
-        #log.trace=True
+        #urlnet.log.trace=True
         urlnet.log.altfd=open('searchengine1.log','w')
     except Exception,e:
         myLog.Write(str(e)+'\n')
@@ -54,9 +54,28 @@ def main():
     
     net = GoogleTree(_maxLevel=1,
                     _workingDir=workingDir,
-                    _resultLimit=20,
+                    _resultLimit=10,
                     _probabilityVector = probabilityByPositionStopSmokingClicks,
                     _probabilityVectorGenerator = vectorGenerator)
+                    
+    
+    ignorableText = \
+        ['video.google.com',
+        'books.google.com',
+        'news.google.com',
+        'maps.google.com',
+        'images.google.com',
+        'blogsearch.google.com',
+        'mail.google.com',
+        'fusion.google.com',
+        'google.com/intl',
+        'google.com/search',
+        'google.com/accounts',
+        'google.com/preferences',
+        'doubleclick',]
+
+    net.SetIgnorableText(ignorableText)
+    
     """
     # uncomment these lines if you want to see what results the top-level query returns.
 
