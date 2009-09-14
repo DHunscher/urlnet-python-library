@@ -59,14 +59,14 @@ def main():
     try:
         # build initial network based on query 'quit smoking'
         
-        net = AOLTree(_maxLevel=2,
+        net = AOLTree(_maxLevel=1,
                        _workingDir=workingDir,
                        _resultLimit=10,
                        _probabilityVector = probability_by_position,
                        _probabilityVectorGenerator = vectorGenerator)
         #
         # tell the algorithm to ignore the MedlinePlus smoking cessation portal for now.
-        textToIgnore.append('medlineplus/smokingcess')
+        textToIgnore.append('medlineplus/quittingsmoking')
         net.SetIgnorableText(textToIgnore)
         #
         # Don't pursue links in Amazon, YouTube, etc.
@@ -84,7 +84,7 @@ def main():
         # First, make sure we haven't already seen it.
         
         mlp_smokingcessation_portal = \
-            'http://www.nlm.nih.gov/medlineplus/smokingcessation.html'
+            'http://www.nlm.nih.gov/medlineplus/quittingsmoking.html'
         item = net.GetUrlNetItemByUrl(mlp_smokingcessation_portal)
         if net.UrlExists(mlp_smokingcessation_portal):
             net.ForceNodeToLevel(level=0,url=mlp_smokingcessation_portal)
