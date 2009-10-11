@@ -50,11 +50,11 @@ def main():
             net.SetProperty('nodeLengthLimit',50)
             # build the cosmos network of genes, nucleotides, and SNPs around a protein
             # (dUTPase) related to HIV; throw in the related documents as well.
-            dbs = urlnet.ncbiconstants.ConcatDBNames( (urlnet.ncbiconstants.GENE,
-                                                       urlnet.ncbiconstants.NUCLEOTIDE,
-                                                       urlnet.ncbiconstants.SNP,
-                                                       urlnet.ncbiconstants.PUBMED) )
-            qry = 'dUTPase HIV'
+            #dbs = urlnet.ncbiconstants.ConcatDBNames( (urlnet.ncbiconstants.GENE,
+            #                                           urlnet.ncbiconstants.SNP,
+            #                                           urlnet.ncbiconstants.PUBMED) )
+            dbs = urlnet.ncbiconstants.PUBMED
+            qry = '"sleep apnea, obstructive" AND "interleukin-6"'
             net.BuildUrlForestWithPhantomRoot(qry,DbSrcOfIds=urlnet.ncbiconstants.PROTEIN,DbsToLink=dbs)
             net.WritePajekFile(qry,qry)
         except Exception, e:

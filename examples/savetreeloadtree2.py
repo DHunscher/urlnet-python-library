@@ -1,5 +1,16 @@
 #!/usr/bin/env python
 # $Id$
+###################################################################
+#                                                                 #
+#                     UrlNet Python Library                       #
+#            Copyright (c) Dale A. Hunscher, 2007-2009            #
+#                     All rights reserved                         #
+#                                                                 #
+#                                                                 #
+# UrlNet is free for non-commercial use.                          #
+# For commercial uses, contact dale.hunscher@thenextroguewave.com #
+#                                                                 #
+###################################################################
 # ncbiauthorcosmos1.py
 import sys
 from os.path import join
@@ -15,7 +26,7 @@ workingDir = GetConfigValue('workingDir')
 
 urlnet.log.logging = True
 # write the log output to a file...
-urlnet.log.altfd = open(join( workingDir, "log-savetreeloadtree2.txt"),'w')
+urlnet.log.altfd = open(join( workingDir, "log-ncbiauthorcosmos1.txt"),'w')
 # ...and only to the file, not to sys.stderr.
 urlnet.log.file_only = True
 
