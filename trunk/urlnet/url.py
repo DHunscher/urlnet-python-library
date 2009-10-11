@@ -3,7 +3,7 @@
 ###################################################################
 #                                                                 #
 #                     UrlNet Python Library                       #
-#            Copyright (c) Dale A. Hunscher, 2007-2008            #
+#            Copyright (c) Dale A. Hunscher, 2007-2009            #
 #                     All rights reserved                         #
 #                                                                 #
 #                                                                 #
@@ -23,10 +23,11 @@ from urllib2 import urlopen, Request
 from urllib import urlencode
 from urlparse import *
 from htmllib import HTMLParser
-from formatter import NullFormatter
+from formatter import NullFormatter, AbstractFormatter, DumbWriter
 from object import Object
 from log import Log
-
+import StringIO
+import re
 
 # module-level function
 def DomainFromHostName(host):
@@ -105,6 +106,12 @@ class Url(Object):
         self.includeMethod = _includeMethod
         self.maxLength = _maxLength
         self.anchors = None
+        if _network:
+            self.thePage = _network.lastPage
+            self.earlyReadSucceeded = _network.earlyReadSucceeded
+        else:
+            self.thePage = None
+            self.earlyReadSucceeded = True
         self.network=_network
         self.sleeptime = self.network.GetProperty('sleeptime')
         if self.sleeptime:
@@ -134,6 +141,7 @@ class Url(Object):
             if not parts or parts[0] == '':
                 self.url = 'http://' + self.url
             self.Init(_doInit)
+
         except Exception, e:
             self.SetLastError ( str(e) )
     
@@ -190,6 +198,15 @@ class Url(Object):
         """
         log = Log('RetrieveUrlContent',theUrl)
         self.ResetLastError()
+        
+        # if we got the page earlier, 
+        if self.thePage != None and getTitleOnly == False:
+            return self.thePage
+        
+        # if we tried to get the page earlier and failed, return an
+        # empty string.
+        if self.thePage == None and self.earlyReadSucceeded == False:
+            return ''
         if theUrl == None:
             theUrl = self.url
             
@@ -209,9 +226,12 @@ class Url(Object):
                 if getTitleOnly and getTitles:
                     # don't get the whole thing, just enough to be sure to get the title,
                     # if there is a <title> element in the <head> element.
-                    page = urlobject.read(2000)
+                    page = self.thePage
+                    if page == None:
+                        page = urlobject.read(2000)
                 else:
                     page = urlobject.read()
+                self.thePage = page
                 # handle Javascript redirects, which are not handled by the httplib2 mechanism
                 # This is a KLUDGE!!!
                 if 'redirect' in page.lower():
@@ -252,14 +272,16 @@ class Url(Object):
                 title = theUrl
             if getTitleOnly:
                 return title
+            
             return page
         except Exception, inst:
-            theError = 'RetrieveUrlContent: ' + str(type(inst)) + '\n' + str(inst) + '\non URL ' + theUrl
+            theError = 'RetrieveUrlContent: ' + str(type(inst)) + '\n' + str(inst) + '\non URL ' + str(theUrl)
             self.SetLastError ( theError )
             log.Write(theError)
             print theError
             return ''
 
+        
     def GetPage(self):
         """
         Retrieve the page pointed to by the url. Returns None if error occurs;
@@ -381,9 +403,10 @@ class Url(Object):
             if page[0:5] == '%PDF-':
                 return self.GetPDFAnchorList(page)
             # parse to Get the href
-            parser = HTMLParser(NullFormatter())
-            parser.feed(page)
-            self.anchors = parser.anchorlist
+            if self.anchors == None:
+                parser = HTMLParser(NullFormatter())
+                parser.feed(page)
+                self.anchors = parser.anchorlist
             
             return self.anchors
                  

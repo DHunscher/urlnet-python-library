@@ -3,7 +3,7 @@
 ###################################################################
 #                                                                 #
 #                     UrlNet Python Library                       #
-#            Copyright (c) Dale A. Hunscher, 2007-2008            #
+#            Copyright (c) Dale A. Hunscher, 2007-2009            #
 #                     All rights reserved                         #
 #                                                                 #
 #                                                                 #
@@ -202,6 +202,9 @@ class SearchEngineTree(UrlTree):
                 self.probabilityVectorGenerator = computeEqualProbabilityVector
             
             self.topLevelUrls = None
+            '''
+            TODO: Fix GUESS processing to handle new approach to URL attrs
+            
             if self.probabilityVector != None:
                 proplist = self.GetProperty('additionalUrlAttrs')
                 if proplist == None:
@@ -210,7 +213,7 @@ class SearchEngineTree(UrlTree):
                     ('pos_prob','DOUBLE',)\
                     )
                 self.SetProperty('additionalUrlAttrs',proplist)
-            
+            '''
         except Exception, e:
             self.SetLastError('in SearchEngineTree:__init__: ' + str(e))
 
@@ -251,7 +254,10 @@ class SearchEngineTree(UrlTree):
         try:
             queryURL = self.FormatSEQuery(query)
             url = self.urlclass(_inboundUrl=queryURL,_network=self)
+            url.SetLastError(None)
             Urls = url.GetAnchorList()
+            if url.GetLastError() != None:
+                raise Exception, url.GetLastError()
             if putRoot:
                 self.PutRootUrl(queryURL)
             return (queryURL,url,Urls)
@@ -422,7 +428,7 @@ class SearchEngineTree(UrlTree):
         log = Log('SearchEngineTree.AssignTopLevelProbabilities')
         try:
             if self.topLevelUrls == None or self.probabilityVector == None:
-                return
+                return True
             
             for i in range(0,len(self.topLevelUrls)):
                 self.topLevelUrls[i] = self.topLevelUrls[i].split('#')[0]    
@@ -519,58 +525,56 @@ class SearchEngineTree(UrlTree):
             self.WritePajekStream(netname,stream,doDomains,doOnlyDomains=doOnlyDomains,useTitles=useTitles)
 
             # calculate and write probability vector, if appropriate
-            if not self.probabilityVector:
-                return
-        
-            if not self.AssignTopLevelProbabilities():
-                raise Exception, self.GetLastError()
-            
-            stream.write('\n\n*Vector Url Net PositionalProbabilities\n*Vertices ' + str(maxIdx) + ' \n')
-            itemlist = {}
-            self.MapFunctionToUrlItemList(
-                    BuildListOfItemIndicesWithPropertyValueLookup,
-                    args=['pos_prob',itemlist,0.0])
-            keys = itemlist.keys()
-            keys.sort()
-            for idx in keys:
-                try:
-                    value = itemlist[idx]
-                except Exception, e:
-                    log.Write('in SearchEngineTree.WritePajekFile, no value for item with index %d' % (idx))
-                    value = None
-                if value == None:
-                        value = 0.0
-                valuestr = '%.4f' % (value * 100.0)
-                spaces = ' '*(8-len(valuestr))
-                stream.write(spaces + str(value) + '\n')
-                if idx > maxIdx:
-                    self.SetLastError( 'too many keys in partition list: ' + str(idx) )
+            if self.probabilityVector != None:
+                if not self.AssignTopLevelProbabilities():
+                    raise Exception, self.GetLastError()
+                
+                stream.write('\n\n*Vector Url Net PositionalProbabilities\n*Vertices ' + str(maxIdx) + ' \n')
+                itemlist = {}
+                self.MapFunctionToUrlItemList(
+                        BuildListOfItemIndicesWithPropertyValueLookup,
+                        args=['pos_prob',itemlist,0.0])
+                keys = itemlist.keys()
+                keys.sort()
+                for idx in keys:
+                    try:
+                        value = itemlist[idx]
+                    except Exception, e:
+                        log.Write('in SearchEngineTree.WritePajekFile, no value for item with index %d' % (idx))
+                        value = None
+                    if value == None:
+                            value = 0.0
+                    valuestr = '%.4f' % (value * 100.0)
+                    spaces = ' '*(8-len(valuestr))
+                    stream.write(spaces + str(value) + '\n')
+                    if idx > maxIdx:
+                        self.SetLastError( 'too many keys in partition list: ' + str(idx) )
 
-            self.WritePajekVectorFromPropertyValueLookup(stream,\
-                    vectorName='Domain Net SummedPositionalProbabilities',\
-                    propertyName='max_domain_prob',defaultVectorValue=0.0,doDomains = True)
-            '''
-            stream.write('\n\n*Vector Domain Net MaxPositionalProbabilities\n*Vertices ' + str(maxIdx) + ' \n')
-            itemlist = {}
-            self.MapFunctionToDomainItemList(
-                    BuildListOfItemIndicesWithPropertyValueLookup,
-                    args=['pos_prob',itemlist,0.0])
-            keys = itemlist.keys()
-            keys.sort()
-            for idx in keys:
-                try:
-                    value = itemlist[idx]
-                except Exception, e:
-                    log.Write('in SearchEngineTree.WritePajekFile, no value for item with index %d' % (idx))
-                    value = None
-                if value == None:
-                        value = 0.0
-                valuestr = '%.4f' % (value * 100.0)
-                spaces = ' '*(8-len(valuestr))
-                stream.write(spaces + str(value) + '\n')
-                if idx > maxDomainIdx:
-                    self.SetLastError( 'too many keys in partition list: ' + str(idx) )
-            '''
+                self.WritePajekVectorFromPropertyValueLookup(stream,\
+                        vectorName='Domain Net SummedPositionalProbabilities',\
+                        propertyName='max_domain_prob',defaultVectorValue=0.0,doDomains = True)
+                '''
+                stream.write('\n\n*Vector Domain Net MaxPositionalProbabilities\n*Vertices ' + str(maxIdx) + ' \n')
+                itemlist = {}
+                self.MapFunctionToDomainItemList(
+                        BuildListOfItemIndicesWithPropertyValueLookup,
+                        args=['pos_prob',itemlist,0.0])
+                keys = itemlist.keys()
+                keys.sort()
+                for idx in keys:
+                    try:
+                        value = itemlist[idx]
+                    except Exception, e:
+                        log.Write('in SearchEngineTree.WritePajekFile, no value for item with index %d' % (idx))
+                        value = None
+                    if value == None:
+                            value = 0.0
+                    valuestr = '%.4f' % (value * 100.0)
+                    spaces = ' '*(8-len(valuestr))
+                    stream.write(spaces + str(value) + '\n')
+                    if idx > maxDomainIdx:
+                        self.SetLastError( 'too many keys in partition list: ' + str(idx) )
+                '''
 
             stream.close()
             """
