@@ -1,6 +1,6 @@
 URLNET PYTHON LIBRARY README FILE
-VERSION 0.82
-03 JANUARY 2009
+VERSION 0.90
+12 OCTOBER 2009
 
 0	DEPENDENCIES
 	- Python 2.5 (http://www.python.org/download/releases/2.5/)
@@ -78,6 +78,10 @@ runs periodically to retrieve the current state of a URL network. All examples
 are described in the manual.
 
 3	RELEASE NOTES
+
+0.90: Many new features added, a few bugs fixed, a bunch of new examples.
+Apologies for the lack of detail, but the user guide covers everything.
+There's too much to list out here in the release notes.
 
 0.82: Added urlutils functions for persisting (saving and loading) networks.
 
