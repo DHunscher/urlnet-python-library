@@ -3,7 +3,7 @@
 ###################################################################
 #                                                                 #
 #                     UrlNet Python Library                       #
-#            Copyright (c) Dale A. Hunscher, 2007-2008            #
+#            Copyright (c) Dale A. Hunscher, 2007-2009            #
 #                     All rights reserved                         #
 #                                                                 #
 #                                                                 #
@@ -16,7 +16,11 @@
 My standard text ignorables and truncatables for search engine results.
 """
 
-# ignore URLs that contain any of these text fragments
+# ignore URLs that contain any of these text fragments 
+# these can be regular expressions, since the test is re.search()
+# to set flags for use in re.search(), such as re.IGNORECASE,
+# pass them as the second argument to net.SetIgnorableText()
+
 
 textToIgnore = [
     '#',
@@ -76,6 +80,9 @@ textToIgnore = [
 
 # process URLs that contain any of these text fragments, but truncate
 # recursion at this node; i.e., don't follow outlinks in the page.
+# these can be regular expressions, since the test is re.search()
+# to set flags for use in re.search(), such as re.IGNORECASE,
+# pass them as the second argument to net.SetTruncatableText()
 
 textToTruncate = [
     '://news.',

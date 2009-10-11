@@ -3,7 +3,7 @@
 ###################################################################
 #                                                                 #
 #                     UrlNet Python Library                       #
-#            Copyright (c) Dale A. Hunscher, 2007-2008            #
+#            Copyright (c) Dale A. Hunscher, 2007-2009            #
 #                     All rights reserved                         #
 #                                                                 #
 #                                                                 #
@@ -22,10 +22,9 @@ import sys
 import os
 import urllib
 import socket
-import re
 
-# for GetTimestampString
-from time import strftime, localtime
+# for GetTimestampString and check for incl/excl
+from time import strftime, localtime, sleep
 
 # for read_config_file and GetConfigValue
 from os.path import exists, join, abspath
@@ -43,39 +42,13 @@ from urlnetitem import UrlNetItem
 from domainnetitem import DomainNetItem
 from log import Log
 
-
-# constants for url top-level domain types returned by UrlTree.GetUrlTLDConstant
-DOTCOM   = 1
-DOTORG   = 2
-DOTNET   = 3
-DOTEDU   = 4
-DOTGOV   = 5
-DOTADM   = 6
-DOTMIL   = 7
-OKDOTCOM = 8
-# imposter
-DOTFAKE  = 9
-# unknown
-DOTUNK   = 999
-
-V_DOTCOM  = 0.01
-V_DOTORG  = 0.5
-V_DOTNET  = 0.01
-V_DOTEDU  = 0.5
-V_DOTGOV  = 0.5
-V_DOTADM  = 0.01
-V_DOTMIL  = 0.01
-V_OKDOTCOM = 0.25
-# imposter
-V_DOTFAKE = 0.01
-# unknown
-V_DOTUNK  = 0.01
-
-# 3 types of URLs in terms of "goodness"
-
-GOOD_DOMAIN = 21
-OK_DOMAIN = 1
-BAD_DOMAIN = 3
+# for inclusion/exclusion checker
+from urllib import unquote, urlencode
+from urllib2 import urlopen, Request
+from htmllib import HTMLParser
+from formatter import NullFormatter, AbstractFormatter, DumbWriter
+import StringIO
+import re
 
 # URI schemes we will try to follow
 PERMISSIBLE_SCHEMES = ('http','https','ftp','sftp')
@@ -486,20 +459,53 @@ def WriteGuessVertex(item,net,level,args):
         domain = ReplaceIllegalChars(domain)
         FILE.write(domain + str(idx) + ',"' + url + '","' + domain + '",' + str(level) )
         if additionalGuessAttrs != None:
-            for attrName, attrType in additionalGuessAttrs:
+            for theDict in additionalGuessAttrs:
+                attrName = theDict['attrName'] # required
+                attrType = theDict['datatype'] # required
+                attrDict = None
+                try:
+                    attrDict = theDict['dict']
+                except Exception, e:
+                    pass
+                    
+                default = None
+                try:
+                    default =  theDict['default'] # optional
+                except Exception, e:
+                    pass
                 value = item.GetProperty(attrName)
-                if attrType.upper() in ('VARCHAR','CHAR','DATE','TIME','DATETIME','BOOLEAN'):
+                if attrDict:
+                    try:
+                        value = attrDict[value]
+                    except Exception, e:
+                        log.Write('attDict lookup on "%s" failed.' \
+                                % str(value) )
+                if attrType.upper() in \
+                    ('VARCHAR','CHAR','DATE','TIME','DATETIME','BOOLEAN'):
                     if value is None:
-                        value = ''
-                    else: # DOUBLE, INT, TINYINT, FLOAT, BIGINT
+                        if default:
+                            value = str(default)
+                        else:
+                            value = ''
+                    else: 
                         value = str(value)
-                    FILE.write(',"%s"' % (value))
-                else:
+                elif attrType.upper() in ('INT', 'TINYINT', 'BIGINT'): 
                     if value is None:
-                        value = '0'
+                        if default:
+                            value = str(default)
+                        else:
+                            value = '0'
                     else:
                         value = str(value)
-                    FILE.write(',%s' % (value))
+                else: # DOUBLE, FLOAT
+                    if value is None:
+                        if default:
+                            value = str(default)
+                        else:
+                            value = '0.0'
+                    else:
+                        value = str(value)
+                FILE.write(',%s' % (value))
         FILE.write('\n')
         return True
     except Exception, e:
@@ -545,29 +551,45 @@ def WriteGuessDomainVertex(item,net,level,args):
     #    nodedef = 'nodedef>name VARCHAR,domain VARCHAR'
     try:
         FILE = args[0]
-        additionalDomainAttrs = args[1]
+        additionalGuessAttrs = args[1]
         idx = item.GetIdx()
         domain = item.GetName()
         domain = ReplaceIllegalChars(domain)
         FILE.write('v' + str(idx) + ',' + domain )
-        if additionalDomainAttrs != None:
-            for attrName, attrType in additionalDomainAttrs:
+        if additionalGuessAttrs != None:
+            for theDict in additionalGuessAttrs:
+                attrName = theDict['attrName'] # required
+                attrType = theDict['datatype'] # required
+                try:
+                    default =  theDict['default'] # optional
+                except Exception, e:
+                    default = None
                 value = item.GetProperty(attrName)
-                if value is None:
-                    if ' DEFAULT ' in attrType.upper():
-                        value = ''
-                    elif attrType.upper() in ('FLOAT','DOUBLE'):
-                        value = '0.0'
-                    elif attrType.upper() in ('INT', 'TINYINT', 'BIGINT'):
-                        value = '0'
+                if attrType.upper() in ('VARCHAR','CHAR','DATE','TIME','DATETIME','BOOLEAN'):
+                    if value is None:
+                        if default:
+                            value = str(default)
+                        else:
+                            value = ''
+                    else: 
+                        value = str(value)
+                elif attrType.upper() in ('INT', 'TINYINT', 'BIGINT'): 
+                    if value is None:
+                        if default:
+                            value = str(default)
+                        else:
+                            value = '0'
                     else:
                         value = str(value)
-                else:
-                    value = str(value)
-                if (' DEFAULT ' in attrType.upper() or (attrType.upper()) in ('FLOAT','DOUBLE','INT', 'TINYINT', 'BIGINT')):
-                    FILE.write(',%s' % (value))
-                else:
-                    FILE.write(',"%s"' % (value))
+                else: # DOUBLE, FLOAT
+                    if value is None:
+                        if default:
+                            value = str(default)
+                        else:
+                            value = '0.0'
+                    else:
+                        value = str(value)
+                FILE.write(',%s' % (value))
         FILE.write('\n')
         return True
     except Exception, e:
@@ -659,6 +681,199 @@ def ConvertTextFile2DOS(infilename, outfilename, removeInFileOnSuccess = True):
         if infd:
             infd.close()
         raise
+
+#### inclusion/exclusion criteria checker ####
+
+def GetHttpPage(network,theUrl):
+    '''
+    '''
+    log = Log('GetHttpPage','url=%s' % (str(theUrl)))
+        
+    try:
+    
+        if network.lastPage != None and network.earlyReadSucceeded == True:
+            return network.lastPage
+        
+        network.lastPage = None
+        network.earlyReadSucceeded = True
+        
+        sleeptime = network.GetProperty('sleeptime')
+        try:
+            sleeptime = float(sleeptime)
+        except Exception, e:
+            log.Write('while converting sleeptime "%s" to float, exception: %s' % (str(sleeptime),str(e)) )
+            sleeptime = 1.0
+        # get text of page here so we can check it.
+        user_agent = network.GetProperty('user-agent')
+        req_headers = network.GetProperty('request-headers')
+        if req_headers == None:
+            req_headers = {}
+        if 'User-Agent' not in req_headers.keys():
+            if user_agent:
+                req_headers['User-Agent'] = user_agent
+            else:
+                # req_headers['User-Agent'] = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT;'
+                req_headers['User-Agent'] = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT; UrlNet Python Library;'
+                
+        if req_headers:
+            req = Request(url=theUrl,headers=req_headers)
+        else:
+            req = Request(theUrl)
+        last_query = theUrl
+        try:
+            urlobject = urlopen(req)
+            page = urlobject.read()
+        except Exception, e:
+            log.Write('on %s, exception: %s' % (str(theUrl), str(e)))
+            network.lastPage = None
+            network.earlyReadSucceeded = False
+            return None
+        # save page so Url class doesn't have to fetch it a second time.
+        network.lastPage = page
+        network.earlyReadSucceeded = True
+    
+        # be polite!
+        if sleeptime:
+            sleep(sleeptime)
+        return page
+    
+    except Exception, inst:
+        theError = 'GetHttpPage: ' + str(type(inst)) + '\n' + str(inst) + '\non URL ' + theUrl
+        network.SetLastError ( theError )
+        log.Write(theError)
+        #print theError
+        return None
+
+
+def CheckInclusionExclusionCriteria(network,theUrl,level):
+    '''
+    See if we need to check for presence of one of a set of
+    text string patterns, each of which is a plain text string or a 
+    regular expression pattern. Return True if (any include pattern
+    is found OR there are no include patterns), AND (no exclude pattern 
+    is found OR there are no exclude patterns), False otherwise.
+    
+    For optimum flexibility, regular expressions can be used in the
+    include/exclude patterns. the search function from the re module
+    is used to check for the presence of a pattern. It is possible
+    to specify the flags argument to re.search for both the include
+    and exclude pattern searches. 
+    
+    '''
+    NO_INCLEXCL = 42 # This is just a magic number for use in
+                     # the context of this function only
+                    
+    log = Log('CheckInclusionExclusionCriteria','url=%s' % (str(theUrl)))
+        
+    try:
+        # if this routine were not set up as the inclusion/exclusion
+        # checker we would never get here. This check is a way to
+        # exit quickly if the user didn't provide any criteria.
+        # network.check4InclusionExclusionCriteria defaults to True,
+        # and if its value is True, the code below will try to get
+        # this function's necessary data from network properties,
+        # and set it to one of two other possible values: 
+        #   False, meaning we have checked and processing should
+        #          continue, or
+        #   NO_INCLEXCL, defined above, which means we didn't have
+        #          the data we needed to continue using this function.
+        #   In the latter case, we also set the 
+        if network.check4InclusionExclusionCriteria == NO_INCLEXCL:
+            return True
+        
+        if network.check4InclusionExclusionCriteria == True:
+            network.check4InclusionExclusionCriteria = False
+            network.includeexclude_level = network.GetProperty('includeexclude_level')
+            # default inclusion/exclusion level is 1 - we assume we want
+            # the root node even if nothing else passes the tests.
+            if network.includeexclude_level == None:
+                network.includeexclude_level = 1
+            network.include_patternlist = network.GetProperty('include_patternlist')
+            network.include_patternlist_flags = network.GetProperty('include_patternlist_flags')
+            network.exclude_patternlist = network.GetProperty('exclude_patternlist')
+            network.exclude_patternlist_flags = network.GetProperty('exclude_patternlist_flags')
+                
+            if network.include_patternlist == None and network.exclude_patternlist == None:
+                log.Write('No criteria for inclusion/exclusion!')
+                network.check4InclusionExclusionCriteria = NO_INCLEXCL
+                network.SetPageContentCheckerFn(None)
+                return True # no regex searches needed
+        if level < network.includeexclude_level:
+            return True # no regex searches needed
+        
+        # Use the standard routine in urlutils to get the page. This ensures
+        # all necessary housekeeping is done. The checker routine is called
+        # early in the processing of a URL, so we will save the page for later
+        # to avoid doing a second GET, and if there is an HTTP error we will
+        # also save that to warn off attempts to retrieve the page later.         
+        page = GetHttpPage(network,theUrl)
+        if not page:
+            return True # press on regardless
+        
+            
+        # ignore anything that is not html, xhtml, or xml
+        head = page[:500]
+        #print str(head)
+        if not re.search('<html',head,re.IGNORECASE):
+            if not re.search('<xhtml',head,re.IGNORECASE):
+                if not re.search('<xml',head,re.IGNORECASE):
+                    return True
+                
+        # parse here to get text
+        strIO = StringIO.StringIO() # to hold the page text
+        parser = HTMLParser(AbstractFormatter(DumbWriter(file=strIO,maxcol=32767)))
+        parser.feed(page)
+        data = strIO.getvalue()
+        
+        # see if page contains at least one item on the include list
+        found = None
+        if network.include_patternlist:
+            for inclusion_pattern in network.include_patternlist:
+                if network.include_patternlist_flags:
+                    found = re.search(inclusion_pattern,data,network.include_patternlist_flags)
+                else:
+                    found = re.search(inclusion_pattern,data)
+                # all we need is one item to trigger inclusion; 
+                # if we found one we can quitlooping
+                if found != None:
+                    break
+            # if we didn't find at least one of the inclusion patterns, scrap the page
+            if found == None:
+                return False
+
+        # if we get here, either there was no include_patternlist, or at least
+        # one of the inclusion patterns was found in the text.
+        
+        # if there are *exclusion* patterns, see if any of them are
+        # found; as soon as we know at least one is found, return False
+        
+        if network.exclude_patternlist:
+            for exclusion_pattern in network.exclude_patternlist:
+                if network.exclude_patternlist_flags:
+                    found = re.search(exclusion_pattern,data,network.exclude_patternlist_flags)
+                else:
+                    found = re.search(exclusion_pattern,data)
+                # we only need one match on an exclusion pattern to trigger
+                # scrapping the page.
+                if found != None:
+                    return False
+                
+        # if we get here, either there was no include_patternlist or there
+        # was a match on at least one of the inclusion patterns, AND
+        # either there was no exclude list or none of the patterns
+        # in the exclusion list were found in the page.
+        
+        return True
+    except Exception, inst:
+        theError = 'CheckInclusionExclusionCriteria: ' + str(type(inst)) + '\n' + str(inst) + '\non URL ' + theUrl
+        network.SetLastError ( theError )
+        log.Write(theError)
+        #print theError
+        return False
+
+
+
+
 
 ###################################################################
 ###################################################################

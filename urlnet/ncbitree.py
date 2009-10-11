@@ -3,7 +3,7 @@
 ###################################################################
 #                                                                 #
 #                     UrlNet Python Library                       #
-#            Copyright (c) Dale A. Hunscher, 2007-2008            #
+#            Copyright (c) Dale A. Hunscher, 2007-2009            #
 #                     All rights reserved                         #
 #                                                                 #
 #                                                                 #

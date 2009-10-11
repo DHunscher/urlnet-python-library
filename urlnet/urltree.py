@@ -3,7 +3,7 @@
 ###################################################################
 #                                                                 #
 #                     UrlNet Python Library                       #
-#            Copyright (c) Dale A. Hunscher, 2007-2008            #
+#            Copyright (c) Dale A. Hunscher, 2007-2009            #
 #                     All rights reserved                         #
 #                                                                 #
 #                                                                 #
@@ -39,6 +39,8 @@ from urlutils import *
 
 # version of this library
 lib_version = '1.0'
+
+NO_REGEX = -1
 
 class UrlTree(Object):
     """
@@ -194,17 +196,23 @@ class UrlTree(Object):
             we encounter
             """
             #dict by index:
+            # given an index, returns our linking data structure
             self.DomainByIndex = {}
             #dict by domain hash:
-            #returns (index)
+             # given a domain, returns (index)
             self.IndexByDomain = {}
 
             self.rootDomain = None
             self.rootScheme = None
             self.rootHost = None
+            
+            # set up redirects, ignorables and truncatables
             self.redirects = _redirects
             self.ignorableText = _ignorableText
             self.truncatableText = _truncatableText
+            self.truncatableTextSearchArgs = NO_REGEX
+            self.ignorableTextSearchArgs = NO_REGEX
+
             self.rawRootUrl = None
             
             if _default_socket_timeout == None:
@@ -241,8 +249,32 @@ class UrlTree(Object):
             timestamp = strftime('%Y-%m-%d--%H-%M-%S',localtime())
             self.SetProperty('timestamp',timestamp)
             
-            self.urlsToFlag = None
-            self.FlaggedUrlPartitionName = None
+            # our supplied inclusion checker by page content function is 
+            # urlutils.CheckInclusionExclusionCriteria, but you must
+            # set it deliberately through a call to
+            # SetPageContentCheckerFn
+            
+            self.PageContentCheckerFn = None
+            self.applyInclusionExclusionCriteriaByURL = None
+            
+            # initialize attributes used in default inclusion/exclusion
+            # checker
+            self.include_patternlist = None
+            self.include_patternlist_flags = None
+            self.exclude_patternlist = None
+            self.exclude_patternlist_flags = None
+            self.check4InclusionExclusionCriteria = True
+
+            # initialize attribute for custom URL 
+            # and domain property setters
+            self.CustomUrlPropertiesSetter = None
+            self.CustomDomainPropertiesSetter = None
+            
+            #
+            self.lastPage = None
+            self.earlyReadSucceeded = True
+            
+            
         except Exception, e:
             self.SetLastError('in UrlTree.__init__: ' + str(e))
             raise
@@ -285,9 +317,9 @@ class UrlTree(Object):
                 return True # not really an error
             
             (currentItem, currentIdx, isNewItem) = self.PutUrl(parentItemIdx,url,currentLevel)
-            getTitles = self.GetProperty('getTitles')
             if (not currentItem):
                 return False
+            getTitles = self.GetProperty('getTitles')
             if (self.singleDomain and self.showLinksToOtherDomains and (self.rootDomain != currentDomain)):
                 if isNewItem and getTitles:
                     # set title for output later
@@ -295,7 +327,17 @@ class UrlTree(Object):
                 return True 
             if self.truncatableText:
                 for text in self.truncatableText:
-                    if text in url:
+                    if ((self.truncatableTextSearchArgs == NO_REGEX) \
+                                and (text in url)):
+                        # truncate tree traversal here. We put the url in the tree, but it's
+                        #   not one we want to follow.
+                        if isNewItem:
+                            # get title only; don't need to do it as a separate action if recursing,
+                            # because it will be a side effect of getting the child URLs
+                            self.SetItemTitleProperty(currentItem)
+                        return True
+                    elif ((self.truncatableTextSearchArgs != NO_REGEX) and \
+                                (re.search(text, url, self.truncatableTextSearchArgs))):
                         # truncate tree traversal here. We put the url in the tree, but it's
                         #   not one we want to follow.
                         if isNewItem:
@@ -484,319 +526,18 @@ class UrlTree(Object):
 ##################  helper functions  ######################
 ############################################################
 
-
-    def AddListOfUrlsToFlag(self, urls, partitionName):
-        '''
-        Data structure being maintained here is a dict with the
-        partitionName param as a key and the list of urls as the
-        corresponding value.
-        '''
-        log = Log('AddListOfUrlsToFlag','urls=%s, parititionName=%s' % \
-                (str(urls), str(partitionName) ) \
-            )
-        try:
-            if self.urlsToFlag == None:
-                self.urlsToFlag = {}
-            # urls could be a file name or path
-            if type(urls) is str:
-                # should be a legitimate file path
-                fd = open(urls)
-                tmp = fd.readlines()
-                fd.close()
-                urls = []
-                for line in tmp:
-                    line = line.strip()
-                    if len(line) > 0:
-                        urls.append(line)
-            self.urlsToFlag[partitionName] = urls
-        except Exception, e:
-            log.Write('in AddListOfUrlsToFlag( urls=%s, partitionName=%s ) %s' \
-                % (str(urls), str(partitionName), str(e)))
-            return
-        
-
-    def FlagUrlCheck(self,item,urlToAdd):
-        '''
-        This method can be used to create a partition in which URLs found in
-        a caller-provided list are valued 1 and URLs not found in the list
-        are valued zero.
-        
-        self.urlsToFlag is a dict consisting of lists of URLs indexed by
-        partition names. For each such list, urlToAdd is checked to see if
-        if it is present, in which case the value of its property named for
-        the partition name will be set to 1, otherwise to zero.
-
-        '''
-        log = Log('FlagUrlCheck',urlToAdd)
-        try:
-            flagged = False
-            if self.urlsToFlag == None:
-                return
-            if len(self.urlsToFlag.keys()) == 0:
-                return
-            urlToAdd = RemoveRealmPrefix(urlToAdd)
-            for partition in self.urlsToFlag.keys():
-                urls = self.urlsToFlag[partition]
-                if urlToAdd in urls:
-                    item.SetProperty(partition,1)
-                else:
-                    item.SetProperty(partition,0)
-        except Exception, e:
-            log.Write('in FlagUrlCheck( ' + str(urlToAdd) + ' ): ' + str(e))
-            return
-        
-    def SetUrlTLDProperties(self,item,urlToAdd):
-        """ If the program has set the TrackTLDProperties property to True,
-            set the URL item's TLD properties. These include:
-            
-            urlTLD: the url's top-level domain.
-            urlTLDVector: a value indicating (in the library author's
-                arbitrary opinion) the relative value of this type of
-                TLD.
-            forProfitUrlTLD: True if url is probably for-profit, else set
-                to False.
-            """
-        log = Log('SetUrlTLDProperties',urlToAdd)
-        try:
-            doTLDProps = self.GetProperty('TrackTLDProperties')
-            if doTLDProps == None or doTLDProps == False:
-                return
-            tldConstants = self.GetUrlTLDConstants(urlToAdd)
-            item.SetProperty('urlTLD',tldConstants[0])
-            item.SetProperty('urlTLDVector',tldConstants[1])
-            item.SetProperty('forProfitUrlTLD',
-                self.IsForProfitUrlTLD(urlToAdd,returnBoolean = False))
-        except Exception, e:
-            log.Write('in SetUrlTLDProperties( ' + str(urlToAdd) + ' ): ' + str(e))
-            return
-        
-    def GetUrlTLD(self,url):
-        """ get the URL's type and return it in lowercase """
-        log = Log('GetUrlTLD',url)
-        
-        try:
-            '''
-            First, the TLDExceptions property is checked to see if the
-            caller has defined exceptions to the general rules for
-            identifying the nature of top-level domains.
-            
-            TLDExceptions is used to correctly identify domains that attempt
-            to pass themselves off as a different top-level domain type than
-            that representing their proper categorization, e.g., a commercial
-            entity representing itself as a dot-org.
-            
-            If set, the property value for TLDExceptions must be a dict in which
-            the keys are fragments of URLs and the dict entry values are from
-            the set of keys for the urlTypeconstants dictionary in 
-            GetUrlTLDConstants. If the key is found in this particular url, 
-            the dict entry value will be used as the tld string.
-            
-            For example, the dictionary
-            
-            d = { 'smoking-cessation.org': 'fake', 'whyquit.com' : 'org',}
-            
-            ...would ensure that the domain smoking-cessation.org is recognized
-            as a commercial domain posing as a non-profit domain 
-            rather than a true non-profit, and that whyquit.com (a labor-of-
-            love site) is recognized as a nonprofit rather than a commercial 
-            domain.
-            
-            The value 'fake' is used to identify for-profit sites masquerading
-            as non-profit to allow their identification as such in network
-            partitions. Conversely, the value 'okcom' is used to denote
-            dot-coms that are essentially altruistic by nature.
-            
-            If there is no exception, the final token delimited by periods
-            is used as the TLD string to be returned to the caller, except for 
-            two-character TLD strings (country identifiers). For these,
-            the second-last token delimited by periods is returned. This works
-            in some cases, but there is no reliable algorithm for determining
-            the profit status of international urls.
-            '''
-            TLDExceptions = self.GetProperty('TLDExceptions')
-            if TLDExceptions != None:
-                for e in TLDExceptions.keys():
-                    if e.lower() in url.lower():
-                        return TLDExceptions[e]
-
-            # if we get here there is no exception
-            urlType = urlparse(url)[1].split('.')
-            if len(urlType[-1]) == 2:
-                return  urlType[-2].lower()
-            else:
-                return urlType[-1].lower()
-        except Exception, e:
-            log.Write('in GetUrlTLD( ' + str(url) + ' ): ' + str(e))
-            return '???'
-        
-        
-    def IsForProfitUrlTLD(self,url,returnBoolean = True):
-        """ By default, return True if the TLD applies to for-profit 
-        entities (e.g.,  com and net), False if TLD applies to non-profit 
-        or is unknown. If returnBoolean is False, return 1 for True and
-        0 (zero) for False.
-        """
-        log = Log('IsForProfitUrlTLD',url)
-
-        urlTypeForProfitConstants = {
-            'com' : True,
-            'co' : True,
-            'tv' : True,
-            'us' : True,
-            'info' : True,
-            'google' : True,
-            'icio' : True,
-            'org' : False,
-            'or' : False,
-            'net' : True,
-            'ne' : True,
-            'edu' : False,
-            'ed' : False,
-            'gov' : False,
-            'go' : False,
-            'nhs' : False,
-            'gc' : False,
-            'int' : False,
-            'ad' : False,
-            'mil' : False,
-            'fake' : True,
-            'okcom' : True,
-            '???' : False,
-            }
-        try:
-            isForProfit = urlTypeForProfitConstants[self.GetUrlTLD(url)]
-            if returnBoolean:
-                return isForProfit
-            else: # caller wants an integer return value
-                if isForProfit == True:
-                    return 1
-                else:
-                    return 0
-                
-        except Exception, e:
-            if returnBoolean:
-                return True
-            else:
-                return 1
-
-    def GetUrlTLDConstants(self,url):
-        """ Return a sequence containing two values: an integer constant 
-            representing the type of TLD in the URL, and a float constant
-            for use in vectors, representing the library creator's rather
-            arbitrary assessment of the relative value of the TLD type.
-            Constants are defined in urlutils.py.
-        """
-        log = Log('GetUrlTLDConstant',url)
-        # dictionary of constants for url types
-        urlTypeConstants = {
-            'com' : (DOTCOM,V_DOTCOM),
-            'biz' : (DOTCOM,V_DOTCOM),
-            'co' : (DOTCOM,V_DOTCOM),
-            'icio' : (DOTCOM,V_DOTCOM),
-            'us' : (DOTCOM,V_DOTCOM),
-            'info' : (DOTCOM,V_DOTCOM),
-            'google' : (DOTCOM,V_DOTCOM),
-            'org' : (DOTORG,V_DOTORG),
-            'or' : (DOTORG,V_DOTORG),
-            'net' : (DOTNET,V_DOTNET),
-            'ne' : (DOTNET,V_DOTNET),
-            'edu' : (DOTEDU,V_DOTEDU),
-            'ed' : (DOTEDU,V_DOTEDU),
-            'gov' : (DOTGOV,V_DOTGOV),
-            'go' : (DOTGOV,V_DOTGOV),
-            'nhs' : (DOTGOV,V_DOTGOV), # UK's health system
-            'gc' : (DOTGOV,V_DOTGOV), # Canadian government
-            'int' : (DOTGOV,V_DOTGOV),
-            'ad' : (DOTADM,V_DOTADM),
-            'mil' : (DOTMIL,V_DOTMIL),
-            'fake' : (DOTFAKE,V_DOTFAKE),
-            'okcom' : (OKDOTCOM,V_OKDOTCOM),
-            '???' : (DOTUNK,V_DOTUNK),
-            }
-        try:
-            tld = self.GetUrlTLD(url)
-            return urlTypeConstants[tld]
-        except Exception, e:
-            log.Write('%s in GetUrlTLDConstant: %s in %s' % (str(e), str(tld), str(url)) )
-            return (DOTUNK,V_DOTUNK)
-        
-        
-        
-    def IgnoreFilteredUrl(self, url):
-        log = Log('IgnoreFilteredUrl',url)    
-        try:
-            """
-            # filter based on top-level domains (TLDs) or categories under country codes
-            
-            Return True if the url should be ignored, False otherwise.
-            
-            common TLDs and country codes are:
-            com = company
-            org = non-profit organization
-            net = ISP
-            gov = government
-            mil = military
-            edu = academic institution
-            int = international organization
-            
-            categories under country codes are administered by the 
-            country itself (if at all), so there is a lot of variation. some
-            common categories are:
-            co = company
-            or = non-profit
-            ac = academic institution
-            go = government
-            ad = network administration
-            ne = ISP
-
-            The property filterToKeep should contain two items:
-            1. a list of strings representing the 
-            TLD categories to keep, without any periods before or 
-            after, in lower case. 
-            2. a number indicating the
-            maximum number of items in the result set requested.
-            For example, to keep government, non-profit, and 
-            academic, and get the first 10 matches out of 100,
-            we would use:
-            
-            net.setProperty('filterToKeep', \
-                    [['gov','go','org','or', 'edu','ac',], 100])
-                    
-            TLDs are generally reliable, though 'net' is often
-            abused, and 'org' is sometimes abused.
-            """
-            
-            filterlist = self.GetProperty('filterToKeep')
-            if filterlist != None:
-                try:
-                    filterlist = filterlist[0]
-                    urlType = self.GetUrlTLD(url)
-                    if urlType == 'com':
-                        pass
-                    # strip off country codes
-                    if len(urlType[-1]) == 2:
-                        urlType = urlType[-2].lower()
-                    else:
-                        urlType = urlType[-1].lower()
-                    # keep url if its TLD is in filterlist
-                    if urlType in filterlist:
-                        return False
-                    else:
-                        return True
-                         
-                except Exception, e:
-                    # keep the weird ones
-                    return False
-                        
-            return False
-        
-        except Exception, e:
-            # keep the weird ones
-            return False
-                
-            
-
 ########
+    def SetPageContentCheckerFn(self, fn):
+        self.PageContentCheckerFn = fn
+
+    def SetApplyInclusionExclusionCriteriaByUrlFn(self, fn):
+        self.applyInclusionExclusionCriteriaByURL = fn
+
+    def SetCustomDomainPropertiesFn(self, fn):
+        self.CustomDomainPropertiesSetter = fn
+
+    def SetCustomUrlPropertiesFn(self, fn):
+        self.CustomUrlPropertiesSetter = fn
 
     def PutUrl(self, parentUrlNetItemIdx, urlToAdd, level,properties=None):
         """
@@ -810,19 +551,32 @@ class UrlTree(Object):
         try:
             domainItem = None
             isNewItem = False
+            self.lastPage = None
             
             # remove trailing slash to avoid differentiating between
             # 'www.a.com' and 'www.a.com/'
             while urlToAdd[-1:] == '/':
                 urlToAdd = urlToAdd[:-1]
             
-            if self.IgnoreFilteredUrl(urlToAdd) == True:
-                return (None,self.masterItemIdx,False)
+            # check to see if we need to exclude based on the URL in and of
+            # itself, as opposed to due to page content criteria.
+            
+            if self.applyInclusionExclusionCriteriaByURL:
+                if self.applyInclusionExclusionCriteriaByURL(self,urlToAdd) == True:
+                    return (None,self.masterItemIdx,False)
             
             item = self.GetUrlNetItemByUrl(urlToAdd)
             # see if URL is already registered
             if not item:
                 # new item
+                # check inclusion/exclusion criteria here, if applicable
+                if self.PageContentCheckerFn != None: 
+                    if self.PageContentCheckerFn(self,\
+                                urlToAdd,\
+                                level):
+                        pass
+                    else:
+                        return (None,self.masterItemIdx,False)
                 isNewItem = True
                 itemIdx = self.masterItemIdx + 1
                 try:
@@ -830,11 +584,30 @@ class UrlTree(Object):
                 except Exception, e:
                     raise Exception, 'self.netitemclass constructor failed: '+str(e)
                 item.SetProperty('level',level)
-                self.FlagUrlCheck(item,urlToAdd)
-                self.SetUrlTLDProperties(item,urlToAdd)
                 
-                # we can set multiple properties at once via a dictionary -
-                # key-value pairs become properties with name = key, value=value
+                # see if we should set custom properties
+                if self.CustomUrlPropertiesSetter:
+                    try:
+                        self.CustomUrlPropertiesSetter(self,item,urlToAdd)
+                    except Exception, e:
+                        log.Write(
+                            'user defined custom URL properties Setter function threw exception: %s' % (str(e)))
+                        self.CustomUrlPropertiesSetter = None
+                        
+                # if we applied a custom inclusion/exclusion function earlier, 
+                # we may have left some URL properties to set, which we couldn't do
+                # then because the item instance didn't exist yet. The custom
+                # function should have left any properties to set in the form
+                # of a dictionary as the value of the net property 'UrlPropsToSet'.
+                # If they're there, set them now.
+                if self.PageContentCheckerFn != None: 
+                    props2Set = self.GetProperty('UrlPagePropsToSet')
+                    if props2Set:
+                        item.SetProperties(props2Set)
+                        self.SetProperty('UrlPagePropsToSet', None)
+                        
+                # do the same if a properties argument was passed to this
+                # function.
                 if properties:
                     item.SetProperties(properties)
                 self.UrlNetItemByIndex[itemIdx] = item
@@ -866,7 +639,27 @@ class UrlTree(Object):
                     domainItem = DomainNetItem(domainIdx,domain,self)
                 except Exception, e:
                     raise Exception, 'DomainNetItem constructor failed: '+str(e)
-                self.SetUrlTLDProperties(domainItem,urlToAdd)
+
+                # see if we should set custom properties
+                if self.CustomDomainPropertiesSetter:
+                    try:
+                        self.CustomDomainPropertiesSetter(self,domainItem,urlToAdd)
+                    except Exception, e:
+                        log.Write(
+                            'user defined custom domain properties setter function threw exception: %s' % (str(e)))
+                        self.CustomDomainPropertiesSetter = None
+
+                # if we applied a custom inclusion/exclusion function earlier, 
+                # we may have left some domain properties to set, which we couldn't do
+                # then because the item instance didn't exist yet. The custom
+                # function should have left any properties to set in the form
+                # of a dictionary as the value of the net property 'DomainPagePropsToSet'.
+                # If they're there, set them now.
+                if self.PageContentCheckerFn != None: 
+                    props2Set = self.GetProperty('DomainPagePropsToSet')
+                    if props2Set:
+                        domainItem.SetProperties(props2Set)
+                        self.SetProperty('DomainPagePropsToSet', None)
                 self.DomainByIndex[domainIdx] = domainItem
                 self.IndexByDomain[domain] = domainIdx
                 self.masterDomainIdx = domainIdx
@@ -912,11 +705,23 @@ class UrlTree(Object):
             this url is the root, therefore there will be no parent,
             thereby simplifying processing.
         """
+        log = Log('PutRootUrl',urlToAdd)
         try:
-            log = Log('PutRootUrl',urlToAdd)
-            #print parentUrlNetItemIdx
-            #print urlToAdd
             self.ResetLastError()
+            self.lastPage = None
+
+            # warn if we exclude the root based on user-defined criteria
+            if self.applyInclusionExclusionCriteriaByURL:
+                if self.applyInclusionExclusionCriteriaByURL(self,urlToAdd) == True:
+                    log.Write('Warning: excluded root URL %s' % urlToAdd)
+                    return (None,self.masterItemIdx,False)
+            
+            # check inclusion/exclusion criteria here
+            if self.PageContentCheckerFn != None: 
+                if self.PageContentCheckerFn(self,urlToAdd,0):
+                    pass
+                else:
+                    return (None,self.masterItemIdx,False)
 
             parts = urlparse(urlToAdd)
             pathPart = self.ParsePathParts(parts.path)
@@ -932,8 +737,28 @@ class UrlTree(Object):
                 raise Exception, 'self.netitemclass constructor failed: '+str(e)
             
             item.SetProperty('level',0) # always zero for the root url
-            self.FlagUrlCheck(item,urlToAdd)
-            self.SetUrlTLDProperties(item,urlToAdd)
+            
+            # see if we should set custom properties
+            if self.CustomUrlPropertiesSetter:
+                try:
+                    self.CustomUrlPropertiesSetter(self,item,urlToAdd)
+                except Exception, e:
+                    log.Write(
+                        'user defined custom URL propertiesSetter function threw exception: %s' % (str(e)))
+                    self.CustomUrlPropertiesSetter = None
+                    
+            # if we applied a custom inclusion/exclusion function earlier, 
+            # we may have left some URL properties to set, which we couldn't do
+            # then because the item instance didn't exist yet. The custom
+            # function should have left any properties to set in the form
+            # of a dictionary as the value of the net property 'UrlPagePropsToSet'.
+            # If they're there, set them now.
+            if self.PageContentCheckerFn != None: 
+                props2Set = self.GetProperty('UrlPagePropsToSet')
+                if props2Set:
+                    item.SetProperties(props2Set)
+                    self.SetProperty('UrlPagePropsToSet', None)
+                    
             self.UrlNetItemByIndex[itemIdx] = item
             self.IndexByUrl[urlToAdd] = itemIdx
             self.masterItemIdx = itemIdx
@@ -944,7 +769,27 @@ class UrlTree(Object):
                 domainItem = DomainNetItem(domainIdx,domain,self)
             except Exception, e:
                 raise Exception, 'DomainNetItem constructor failed: '+str(e)
-            self.SetUrlTLDProperties(domainItem,urlToAdd)
+            
+            # see if we should set custom properties
+            if self.CustomDomainPropertiesSetter:
+                try:
+                    self.CustomDomainPropertiesSetter(self,domainItem,urlToAdd)
+                except Exception, e:
+                    log.Write(
+                        'user defined custom domain properties setter function threw exception: %s' % (str(e)))
+                    self.CustomDomainPropertiesSetter = None
+
+            # if we applied a custom inclusion/exclusion function earlier, 
+            # we may have left some domain properties to set, which we couldn't do
+            # then because the item instance didn't exist yet. The custom
+            # function should have left any properties to set in the form
+            # of a dictionary as the value of the net property 'DomainPagePropsToSet'.
+            # If they're there, set them now.
+            if self.PageContentCheckerFn != None: 
+                props2Set = self.GetProperty('DomainPagePropsToSet')
+                if props2Set:
+                    domainItem.SetProperties(props2Set)
+                    self.SetProperty('DomainPagePropsToSet', None)
             self.DomainByIndex[domainIdx] = domainItem
             self.IndexByDomain[domain] = domainIdx
             self.masterDomainIdx = domainIdx
@@ -956,6 +801,7 @@ class UrlTree(Object):
         except Exception, e:
             self.SetLastError('in putRootUrl: ' + str(e) + '\nurl: ' + urlToAdd)
             return (None,-1,'')
+
 
     def SetItemTitleProperty(self,currentItem):
         if currentItem:
@@ -1020,8 +866,12 @@ class UrlTree(Object):
             if level != None and level >= 0:
                 if self.ignorableText:
                     for text in self.ignorableText:
-                        if text in url:
-                            return None
+                        if self.ignorableTextSearchArgs == NO_REGEX:
+                            if text in url:
+                                return None
+                        else:
+                            if re.search(text, url, self.ignorableTextSearchArgs):
+                                return None
 
             # remove fragments
             lastSlash = url.rfind('/')
@@ -1355,7 +1205,7 @@ class UrlTree(Object):
         """
         map a function against each the parent-child index pairs for
         each item in network, in ascending index order for parent.
-        The mapper function must take 4 arguments:
+        The mapper function must take 5 arguments:
             parentItemIdx:  index of current parent DomainNetItem
             childItemIdx:   index of current child item
             frequency:      number of times this arc/edge occurs
@@ -1371,12 +1221,16 @@ class UrlTree(Object):
             item = self.GetDomainByIndex(parentIdx)
             children = {}
             for childIdx in item.GetChildren():
-                children[childIdx] = 1
+                try:
+                    count = children[childIdx]
+                    children[childIdx] = count + 1
+                except Exception, e:
+                    children[childIdx] = 1
 
             keys = children.keys()
             keys.sort()
             for childIdx in keys:
-                doContinue = functionToMap(parentIdx, childIdx, self, args)
+                doContinue = functionToMap(parentIdx, childIdx, children[childIdx],self, args)
                 # print '%d %d' % (parentIdx, childIdx)
                 if not doContinue:
                     break
@@ -1485,14 +1339,14 @@ class UrlTree(Object):
         try:
             if valueDict != None:
                 self.WritePajekPartitionFromPropertyDict(
-                                            stream=stream,
+                                            fd=stream,
                                             partitionName=partitionName,
                                             propertyName=propertyName,
                                             dict=valueDict,
                                             doDomains=(urlNet == False) )
             else:
                 self.WritePajekPartitionFromPropertyValueLookup(
-                                            stream=stream,
+                                            fd=stream,
                                             partitionName=partitionName,
                                             propertyName=propertyName,
                                             doDomains=(urlNet == False) )
@@ -1631,10 +1485,7 @@ class UrlTree(Object):
             # for some kinds of networks, it is useful to reverse direction of arcs
             # or edges
             reverseDirection = False
-            try:
-                reverseDirection = self.GetProperty('reverseArcOrEdgeDirection')
-            except Exception, e:
-                raise 'in UrlTree.WritePajekStream, self.GetProperty call threw exception ' + str(e)
+            reverseDirection = self.GetProperty('reverseArcOrEdgeDirection')
             if reverseDirection == None:
                 reverseDirection = False
             elif reverseDirection != False:
@@ -1675,7 +1526,7 @@ class UrlTree(Object):
                 stream.write('*Edges\n')
                 self.MapFunctionToParentChildPairs(functionToMap=WritePajekArcOrEdge,args=(stream,reverseDirection))
                     
-                stream.write('\n\n*Partition URLLevels.clu\n*Vertices ' + str(maxIdx) + ' \n')
+                stream.write('\n\n*Partition URLLevels\n*Vertices ' + str(maxIdx) + ' \n')
                 itemlist = {}
                 self.MapFunctionToUrlItemList(BuildListOfItemIndicesWithLevel,args=itemlist)
                 keys = itemlist.keys()
@@ -1687,38 +1538,50 @@ class UrlTree(Object):
                     if idx > maxIdx:
                         self.SetLastError( 'too many keys in partition list: ' + str(idx) )
 
-            doTLDProps = self.GetProperty('TrackTLDProperties')
-            if doTLDProps == None or doTLDProps == False:
-                pass
-            else:
-                # write for-profit and not-for-profit partition
-                self.WritePajekPartitionFromPropertyValueLookup(stream,\
-                    'URL Net TLD For-Profit/Not-For-Profit','forProfitUrlTLD',
-                                                   defaultPartitionNumber=0,
-                                                   doDomains=False)
-                # write for-profit and not-for-profit partition
-                self.WritePajekPartitionFromPropertyValueLookup(stream,\
-                    'URL Net TLD Type','urlTLD',
-                                                   defaultPartitionNumber=DOTUNK,
-                                                   doDomains=False)
-                # write TLD type vector
-                self.WritePajekVectorFromPropertyValueLookup(stream,\
-                    vectorName='URL Net TLD Type',propertyName='urlTLDVector',
-                                                   defaultVectorValue=0.0,
-                                                   doDomains=False)
-                                                
-                                                
-            # see if there are flag paritions we need to process
-            doFlaggedPartitions = (\
-                self.urlsToFlag != None and len(self.urlsToFlag.keys()) > 0)
-            
-            if doFlaggedPartitions:
-                for partition in self.urlsToFlag.keys():
-                    self.WritePajekPartitionFromPropertyValueLookup(stream,\
-                        partition, partition, \
-                                                   defaultPartitionNumber=0, \
-                                                   doDomains=False)
-                
+                # process additional URL attributes, if any
+                additionalUrlAttrs = self.GetProperty('additionalUrlAttrs')
+                if additionalUrlAttrs != None:
+                    for theDict in additionalUrlAttrs:
+                        outputName = theDict['PorVName']
+                        attrName = theDict['attrName']
+                        generatePartition = theDict['doPartition']
+                        if 'default' in theDict.keys():
+                            default = theDict['default']
+                        elif generatePartition:
+                            default = UrlTree.PAJEK_NULL_PARTITION
+                        else:
+                            default = 0.0
+                        if 'dict' in theDict.keys() \
+                                    and generatePartition == True:
+                            dictionary = theDict['dict']
+                        else:
+                            dictionary = None
+                        if generatePartition:
+                            # write partition
+                            if dictionary:
+                                self.WritePajekPartitionFromPropertyDict(
+                                                fd=stream,
+                                                partitionName=outputName, 
+                                                propertyName=attrName, 
+                                                dict=dictionary,
+                                                defaultPartitionNumber=default,
+                                                doDomains=False)
+                            else:
+                                self.WritePajekPartitionFromPropertyValueLookup(
+                                                fd=stream,
+                                                partitionName=outputName, 
+                                                propertyName=attrName, 
+                                                defaultPartitionNumber=default,
+                                                doDomains=False)
+                        else:
+                            # write vector
+                            self.WritePajekVectorFromPropertyValueLookup(
+                                                stream,
+                                                vectorName=outputName,
+                                                propertyName=attrName,
+                                                defaultVectorValue=default,
+                                                doDomains=False)
+                        
             ########################################
             # now do the domain networks
             ########################################
@@ -1760,7 +1623,7 @@ class UrlTree(Object):
                 self.MapFunctionToDomainParentChildPairs(functionToMap=WritePajekDomainArcOrEdge,
                     args=(stream,reverseDirection))
                     
-                stream.write('\n\n*Partition DomainLevels.clu\n*Vertices ' + str(maxIdx) + ' \n')
+                stream.write('\n\n*Partition DomainLevels\n*Vertices ' + str(maxIdx) + ' \n')
                 itemlist = {}
                 self.MapFunctionToDomainItemList(BuildListOfItemIndicesWithLevel,args=itemlist)
                 keys = itemlist.keys()
@@ -1771,27 +1634,54 @@ class UrlTree(Object):
                     stream.write(spaces + str(level) + '\n')
                     if idx > maxIdx:
                         print 'too many keys in partition list: ' + str(idx)
-                if doTLDProps == None or doTLDProps == False:
-                    pass
-                else:
-                    # write for-profit and not-for-profit partition
-                    self.WritePajekPartitionFromPropertyValueLookup(stream,\
-                        'Domain Net TLD For-Profit/Not-For-Profit','forProfitUrlTLD',
-                                                       defaultPartitionNumber=0,
-                                                       doDomains=True)
-                    # write for-profit and not-for-profit partition
-                    self.WritePajekPartitionFromPropertyValueLookup(stream,\
-                        'Domain Net TLD Type','urlTLD',
-                                                       defaultPartitionNumber=DOTUNK,
-                                                       doDomains=True)
-                    # write TLD type vector
-                    self.WritePajekVectorFromPropertyValueLookup(stream,\
-                        vectorName='Domain Net TLD Type',propertyName='urlTLDVector',
-                                                       defaultVectorValue=0.0,
-                                                       doDomains=True)
+
+                # process additional domain attributes, if any
+                additionalDomainAttrs = self.GetProperty('additionalDomainAttrs')
+                if additionalDomainAttrs != None:
+                    for theDict in additionalDomainAttrs:
+                        outputName = theDict['PorVName']
+                        attrName = theDict['attrName']
+                        generatePartition = theDict['doPartition']
+                        if 'default' in theDict.keys():
+                            default = theDict['default']
+                        elif generatePartition:
+                            default = UrlTree.PAJEK_NULL_PARTITION
+                        else:
+                            default = 0.0
+                        if 'dict' in theDict.keys() \
+                                    and generatePartition == True:
+                            dictionary = theDict['dict']
+                        else:
+                            dictionary = None
+                        if generatePartition:
+                            # write partition
+                            if dictionary:
+                                self.WritePajekPartitionFromPropertyDict(
+                                                fd=stream,
+                                                partitionName=outputName, 
+                                                propertyName=attrName, 
+                                                dict=dictionary,
+                                                defaultPartitionNumber=default,
+                                                doDomains=True)
+                            else:
+                                self.WritePajekPartitionFromPropertyValueLookup(
+                                                fd=stream,
+                                                partitionName=outputName, 
+                                                propertyName=attrName, 
+                                                defaultPartitionNumber=default,
+                                                doDomains=True)
+                        else:
+                            # write vector
+                            self.WritePajekVectorFromPropertyValueLookup(
+                                                stream,
+                                                vectorName=outputName,
+                                                propertyName=attrName,
+                                                defaultVectorValue=default,
+                                                doDomains=True)
+
         except Exception, e:
-            self.SetLastError('In WritePajekFile: ' + str(e))
-            log.Write('In WritePajekFile: ' + str(e))
+            self.SetLastError('In WritePajekStream: ' + str(e))
+            log.Write('In WritePajekStream: ' + str(e))
             raise
 
     def WritePajekPartitionFromPropertyValueLookup(self,fd,partitionName,propertyName,
@@ -1877,7 +1767,8 @@ class UrlTree(Object):
             self.SetLastError('In WritePajekPartitionFromPropertyDict: ' + str(e))
             raise
 
-    def WritePajekVectorFromPropertyValueLookup(self,fd,vectorName,propertyName,defaultVectorValue,doDomains = False):
+    def WritePajekVectorFromPropertyValueLookup(self,fd,vectorName, \
+                propertyName, defaultVectorValue,doDomains = False):
         """
         Write a Pajek vector using the value of a property on each UrlNetItem-descended
         node instance. A dictionary is used to translate property values into integer
@@ -1913,6 +1804,8 @@ class UrlTree(Object):
                 fd.write(spaces + str(value) + '\n')
                 if idx > maxIdx:
                     self.SetLastError( 'too many keys in partition list: ' + str(idx) )
+            fd.write('\n\n')
+                
         except Exception, e:
             log.Write('In WritePajekVectorFromPropertyValueLookup: ' + str(e))
             self.SetLastError('In WritePajekVectorFromPropertyValueLookup: ' + str(e))
@@ -1965,18 +1858,29 @@ class UrlTree(Object):
                 
             if doUrlNetwork:
                 """
-                if present, additionalUrlAttrs property value should be a list of two-item tuples containing
-                name/type pairs. The name should be a legal Python variable name, and the type should be one
-                of CHAR, VARCHAR, DATE, TIME, DATETIME, BOOLEAN, INT, FLOAT, DOUBLE, BIGINT, or TINYINT; the
+                if present, additionalUrlAttrs property value must be a list containing a dictionary 
+                for each additional attribute. In each dictionary, there must be two entries, 
+                'attrName' and 'datatype'. The value of the attrName entry must be a legal Java  
+                variable name, and the value of the datatype entry must be one of the constants
+                CHAR, VARCHAR, DATE, TIME, DATETIME, BOOLEAN, INT, FLOAT, DOUBLE, BIGINT, or TINYINT; the
                 name of the type should of course be a string.
-                The name should be a property on each URlNetItem instance in the network. For example:
+                
+                attrName should be a property on each URlNetItem instance in the network.  The entry can 
+                optionally contain another entry 'default' whose value is a default to use if an item does 
+                not have the property. For example:
                     
-                IF the network's additionalUrlAttrs property contains [('pos_prob','DOUBLE',),]
+                IF the network's additionalUrlAttrs property contains 
+                
+                    [{'attrName' : 'pos_prob', 'datatype' : 'DOUBLE',},]
+
                 THEN each item should have a property named 'pos_prob' whose value is a double float.
+                
                 """
                 additionalUrlAttrs = self.GetProperty('additionalUrlAttrs')
                 if additionalUrlAttrs != None:
-                    for attrName, attrType in additionalUrlAttrs:
+                    for theDict in additionalUrlAttrs:
+                        attrName = theDict['attrName']
+                        attrType = theDict['datatype']
                         nodedef = '%s, %s %s' % (nodedef, attrName, attrType)
                 stream.write(nodedef + '\n')
                 maxIdx = len(self.UrlNetItemByIndex.keys())
@@ -1991,7 +1895,9 @@ class UrlTree(Object):
             else:
                 additionalDomainAttrs = self.GetProperty('additionalDomainAttrs')
                 if additionalDomainAttrs != None:
-                    for attrName, attrType in additionalDomainAttrs:
+                    for theDict in additionalDomainAttrs:
+                        attrName = theDict['attrName']
+                        attrType = theDict['datatype']
                         domainNodedef = '%s, %s %s' % (domainNodedef, attrName, attrType)
                 stream.write(domainNodedef + '\n')
                 maxIdx = len(self.DomainByIndex.keys())
@@ -2051,16 +1957,18 @@ class UrlTree(Object):
             self.SetLastError(str(e))
         
 
-    def SetTruncatableText(self,listOfStringsThatWhenFoundEmbeddedTriggerTruncatingaURL):
-        self.truncatableText = listOfStringsThatWhenFoundEmbeddedTriggerTruncatingaURL
+    def SetTruncatableText(self,listOfStrings, searchArgs=NO_REGEX):
+        self.truncatableText = listOfStrings
+        self.truncatableTextSearchArgs = searchArgs
     
 
     def GetTruncatableText(self):
         return self.truncatableText
 
 
-    def SetIgnorableText(self,listOfStringsThatWhenFoundEmbeddedTriggerIgnoringaURL):
-        self.ignorableText = listOfStringsThatWhenFoundEmbeddedTriggerIgnoringaURL
+    def SetIgnorableText(self,listOfStrings, searchArgs=NO_REGEX):
+        self.ignorableText = listOfStrings
+        self.ignorableTextSearchArgs = searchArgs
     
 
     def GetIgnorableText(self):
