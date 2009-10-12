@@ -1072,10 +1072,9 @@ class UrlTree(Object):
         """
         map a function against each unique parent-child index pair for
         each item in network, in ascending index order for parent.
-        The mapper function must take 5 arguments:
+        The mapper function must take 4 arguments:
             parentItemIdx:  index of current parent self.netitemclass
             childItemIdx:   index of current child item
-            frequency:      number of times this arc/edge occurs
             net:            current UrlTree
             args:           user-defined argument; can be sequence or list if
                             multiple arguments are needed
@@ -1097,7 +1096,7 @@ class UrlTree(Object):
             keys = children.keys()
             keys.sort()
             for childIdx in keys:
-                doContinue = functionToMap(parentIdx, childIdx, children[childIdx], self, args)
+                doContinue = functionToMap(parentIdx, childIdx, self, args)
                 if not doContinue:
                     break
             if not doContinue:
@@ -1230,7 +1229,7 @@ class UrlTree(Object):
             keys = children.keys()
             keys.sort()
             for childIdx in keys:
-                doContinue = functionToMap(parentIdx, childIdx, children[childIdx],self, args)
+                doContinue = functionToMap(parentIdx, childIdx, self, args)
                 # print '%d %d' % (parentIdx, childIdx)
                 if not doContinue:
                     break
