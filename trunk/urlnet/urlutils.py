@@ -329,6 +329,35 @@ def WritePajekArcOrEdge(fromIdx,toIdx,net,args):
         log.Write('Exception in WritePajekArcOrEdge: %s' % (str(e)))
         raise
      
+def WritePajekDomainArcOrEdge(fromIdx,toIdx,net,args):
+    log = Log('WritePajekDomainArcOrEdge',"%d %d" % (fromIdx,toIdx))
+    try:
+        FILE = args[0]
+        reverseDirection = args[1]
+            
+        # get parent item
+        item = net.GetDomainByIndex(fromIdx)
+        # get child weight 
+        weight = item.GetChildHitCount(toIdx)
+        # weight can't be zero
+        if weight == 0:
+            weight = 1
+        # if reverseDirection is true, we need to swap the from and to indices
+        if reverseDirection:
+            temp = fromIdx
+            fromIdx = toIdx
+            toIdx = temp
+        FILE.write('       ' + str(fromIdx) + '       ' + str(toIdx) + ' ' + str(weight) + ' \n')
+        return True
+    except Exception, e:
+        log.Write('Exception in WriteGuessDomainArc: %s' % (str(e)))
+        raise
+
+     
+###################################################################
+#####   a set of mapper functions for building pair networks ######
+###################################################################
+
 def WritePairArcOrEdge(fromIdx,toIdx,net,args):
     '''
     Use this writer function to produce a list of simple edge definitions
@@ -373,7 +402,7 @@ def WritePairDomainArcOrEdge(fromIdx,toIdx,net,args):
     (fromname  toname). 
     If uniquePairs is not True, write 1 edge definition per parent-child pair 
     '''
-    log = Log('WritePairArcOrEdge',"%d %d args=%s" % (fromIdx,toIdx,str(args)))
+    log = Log('WritePairDomainArcOrEdge',"%d %d args=%s" % (fromIdx,toIdx,str(args)))
     try:
         FILE = args[0]
         uniquePairs = args[1]
@@ -393,32 +422,9 @@ def WritePairDomainArcOrEdge(fromIdx,toIdx,net,args):
             weight = weight - 1
         return True
     except Exception, e:
-        log.Write('Exception in WritePairArcOrEdge: %s' % (str(e)))
+        log.Write('Exception in WritePairDomainArcOrEdge: %s' % (str(e)))
         raise
      
-def WritePajekDomainArcOrEdge(fromIdx,toIdx,net,args):
-    log = Log('WritePajekDomainArcOrEdge',"%d %d" % (fromIdx,toIdx))
-    try:
-        FILE = args[0]
-        reverseDirection = args[1]
-            
-        # get parent item
-        item = net.GetDomainByIndex(fromIdx)
-        # get child weight 
-        weight = item.GetChildHitCount(toIdx)
-        # weight can't be zero
-        if weight == 0:
-            weight = 1
-        # if reverseDirection is true, we need to swap the from and to indices
-        if reverseDirection:
-            temp = fromIdx
-            fromIdx = toIdx
-            toIdx = temp
-        FILE.write('       ' + str(fromIdx) + '       ' + str(toIdx) + ' ' + str(weight) + ' \n')
-        return True
-    except Exception, e:
-        log.Write('Exception in WriteGuessDomainArc: %s' % (str(e)))
-        raise
      
 ###################################################################
 #####   a set of mapper functions for building Guess networks #####
@@ -795,6 +801,7 @@ def CheckInclusionExclusionCriteria(network,theUrl,level):
                 
             if network.include_patternlist == None and network.exclude_patternlist == None:
                 log.Write('No criteria for inclusion/exclusion!')
+                print 'No criteria for inclusion/exclusion!'
                 network.check4InclusionExclusionCriteria = NO_INCLEXCL
                 network.SetPageContentCheckerFn(None)
                 return True # no regex searches needed
@@ -808,16 +815,15 @@ def CheckInclusionExclusionCriteria(network,theUrl,level):
         # also save that to warn off attempts to retrieve the page later.         
         page = GetHttpPage(network,theUrl)
         if not page:
-            return True # press on regardless
+            return False # omit because we can't check content
         
-            
         # ignore anything that is not html, xhtml, or xml
         head = page[:500]
         #print str(head)
         if not re.search('<html',head,re.IGNORECASE):
             if not re.search('<xhtml',head,re.IGNORECASE):
                 if not re.search('<xml',head,re.IGNORECASE):
-                    return True
+                    return False # exclude if we can't check content
                 
         # parse here to get text
         strIO = StringIO.StringIO() # to hold the page text
