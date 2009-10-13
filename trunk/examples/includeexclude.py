@@ -13,7 +13,6 @@
 ###################################################################
 # includeexclude.py
 from urlnet.urltree import UrlTree
-from urlnet.urlutils import CheckInclusionExclusionCriteria
 import re # for search flags
 
 # in case we need to be polite...
@@ -40,10 +39,6 @@ incl_patternlist = [
     'CATALOG', 
     ]
 
-# use the UrlNet-provided simple inclusion/exclusion checker
-net.SetPageContentCheckerFn(\
-        CheckInclusionExclusionCriteria)
-        
 net.SetProperty('include_patternlist',incl_patternlist)
 
 net.BuildUrlTree('http://www.southwindpress.com')
@@ -65,10 +60,6 @@ incl_patternlist = [
     'catalog',
     ]
 
-# use the UrlNet-provided simple inclusion/exclusion checker
-net.SetPageContentCheckerFn(\
-        CheckInclusionExclusionCriteria)
-        
 net.SetProperty('include_patternlist',incl_patternlist)
 net.SetProperty('exclude_patternlist',['discovering tacit assumptions',])
 
@@ -87,11 +78,6 @@ incl_patternlist = [
     'catalog',
     ]
 
-# use the UrlNet-provided simple inclusion/exclusion checker
-net.SetPageContentCheckerFn(\
-        CheckInclusionExclusionCriteria)
-        
-        
 net.SetProperty('include_patternlist',incl_patternlist)
 
 # pass in the re module flag that says to ignore case, re.IGNORECASE;
