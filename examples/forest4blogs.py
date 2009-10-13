@@ -12,13 +12,14 @@
 #                                                                 #
 ###################################################################
 # forest4blogs.py
-from urlnet2.urltree import UrlTree
-import urlnet2.log
+from urlnet.urltree import UrlTree
+import urlnet.log
 
 net = UrlTree(_maxLevel=1,_useHostNameForDomainName = True)
 
 urlforest = (
 'http://hunscher.typepad.com',
+'http://practicefusion.typepad.com',
 )
 
 #net = UrlTree(_maxLevel=1)
@@ -118,13 +119,11 @@ ignorableText = \
 
 net.SetIgnorableText(ignorableText)
 
-urlnet2.log.logging=True
+urlnet.log.logging=True
 success = net.BuildUrlForest(Urls=urlforest)
-# success = net.BuildUrlTree(urlforest[0])
-print net.GetLastError()
 
 if success:
-   net.WritePajekFile('urlforest4blogs', 'urlforest4blogs')
-   net.WritePajekNetworkFile('urlforest4blogs', 'urlforest4blogs', urlNet =
+   net.WritePajekFile('forest4blogs', 'forest4blogs')
+   net.WritePajekNetworkFile('forest4blogs', 'forest4blogs', urlNet =
 False)
 

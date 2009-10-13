@@ -1205,7 +1205,7 @@ class UrlTree(Object):
             if not doContinue:
                 break
  
-    def MapFunctionToUniqueDomainParentChildPairs(self,functionToMap,args=None):
+    def MapFunctionToUniqueDomainParentChildPairs(self,functionToMap,args=None,passFreq=False):
         """
         map a function against each the parent-child index pairs for
         each item in network, in ascending index order for parent.
@@ -1234,7 +1234,10 @@ class UrlTree(Object):
             keys = children.keys()
             keys.sort()
             for childIdx in keys:
-                doContinue = functionToMap(parentIdx, childIdx, self, args)
+                if passFreq:
+                    doContinue = functionToMap(parentIdx, childIdx, children[childIdx], self, args)
+                else:
+                    doContinue = functionToMap(parentIdx, childIdx, self, args)
                 # print '%d %d' % (parentIdx, childIdx)
                 if not doContinue:
                     break
@@ -1914,7 +1917,8 @@ class UrlTree(Object):
                 # write arcs by mapping a function to each parent-child pair in the list.
                 stream.write(edgedef + '\n')
                 self.MapFunctionToUniqueDomainParentChildPairs(functionToMap=WriteGuessDomainArc,
-                    args=(stream,reverseDirection))
+                     args=(stream,reverseDirection),
+                     passFreq=True)
  
         except Exception, e:
             self.SetLastError('In WriteGuessStream: ' + str(e))

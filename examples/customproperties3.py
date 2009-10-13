@@ -122,7 +122,7 @@ def main():
         
         net.BuildUrlTreeWithPlaceholderRoot('http://search.yahoo.com/','quit smoking')
             
-        net.WritePajekFile('customproperties2','customproperties2')
+        net.WritePajekFile('customproperties3','customproperties3')
         
     except Exception,e:
         myLog.Write(str(e)+'\n on Yahoo quit smoking query\n')
