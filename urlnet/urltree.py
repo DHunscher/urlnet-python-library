@@ -250,11 +250,10 @@ class UrlTree(Object):
             self.SetProperty('timestamp',timestamp)
             
             # our supplied inclusion checker by page content function is 
-            # urlutils.CheckInclusionExclusionCriteria, but you must
-            # set it deliberately through a call to
-            # SetPageContentCheckerFn
+            # urlutils.CheckInclusionExclusionCriteria, but you can
+            # override it through a call to SetPageContentCheckerFn
             
-            self.PageContentCheckerFn = None
+            self.PageContentCheckerFn = CheckInclusionExclusionCriteria
             self.applyInclusionExclusionCriteriaByURL = None
             
             # initialize attributes used in default inclusion/exclusion
@@ -1068,13 +1067,16 @@ class UrlTree(Object):
             if not doContinue:
                 break
  
-    def MapFunctionToUniqueParentChildPairs(self,functionToMap,args=None):
+    def MapFunctionToUniqueParentChildPairs(self,functionToMap,args=None,passFreq=False):
         """
         map a function against each unique parent-child index pair for
         each item in network, in ascending index order for parent.
-        The mapper function must take 4 arguments:
+        The mapper function must take 4 or 5 arguments:
             parentItemIdx:  index of current parent self.netitemclass
             childItemIdx:   index of current child item
+            frequency:      if passFreq is True when this function is called,
+                            it will pass the number of links extant between
+                            parent and child.
             net:            current UrlTree
             args:           user-defined argument; can be sequence or list if
                             multiple arguments are needed
@@ -1096,7 +1098,10 @@ class UrlTree(Object):
             keys = children.keys()
             keys.sort()
             for childIdx in keys:
-                doContinue = functionToMap(parentIdx, childIdx, self, args)
+                if passFreq:
+                    doContinue = functionToMap(parentIdx, childIdx, children[childIdx], self, args)
+                else:
+                    doContinue = functionToMap(parentIdx, childIdx, self, args)
                 if not doContinue:
                     break
             if not doContinue:
@@ -1890,7 +1895,8 @@ class UrlTree(Object):
                 # write arcs by mapping a function to each parent-child pair in the list.
                 stream.write(edgedef + '\n')
                 self.MapFunctionToUniqueParentChildPairs(functionToMap=WriteGuessArc,
-                    args=(stream,reverseDirection))
+                                                         args=(stream,reverseDirection),
+                                                         passFreq=True)
             else:
                 additionalDomainAttrs = self.GetProperty('additionalDomainAttrs')
                 if additionalDomainAttrs != None:

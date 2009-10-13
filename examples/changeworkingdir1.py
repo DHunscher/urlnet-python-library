@@ -14,10 +14,20 @@
 # changeworkingdir1.py
 
 from urlnet.urltree import UrlTree
+import os
 
-# change this to a value that works for you...
-workingDir = 'C:\\Users\\dalehuns\\Documents\\Python\\blogstuff'
+# if this program succeeds, it will put its output in a directory
+# under the current directory where the program is started,
+# called changeworkingdir1. A Pajek project should appear there.
 
-net = UrlTree(_maxLevel=2, _workingDir=workingDir)
+workingDir = os.getcwd()
+workingDir += os.sep
+workingDir += 'changeworkingdir1'
+try:
+    os.mkdir(workingDir)
+except Exception, e:
+    print str(type(e)), str(e)
+
+net = UrlTree(_maxLevel=1, _workingDir=workingDir)
 net.BuildUrlTree('http://www.southwindpress.com')
 net.WritePajekFile('changeworkingdir1', 'changeworkingdir1')
