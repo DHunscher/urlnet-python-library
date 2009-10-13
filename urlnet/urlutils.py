@@ -801,7 +801,6 @@ def CheckInclusionExclusionCriteria(network,theUrl,level):
                 
             if network.include_patternlist == None and network.exclude_patternlist == None:
                 log.Write('No criteria for inclusion/exclusion!')
-                print 'No criteria for inclusion/exclusion!'
                 network.check4InclusionExclusionCriteria = NO_INCLEXCL
                 network.SetPageContentCheckerFn(None)
                 return True # no regex searches needed
@@ -818,11 +817,9 @@ def CheckInclusionExclusionCriteria(network,theUrl,level):
             return False # omit because we can't check content
         
         # ignore anything that is not html, xhtml, or xml
-        head = page[:500]
-        #print str(head)
-        if not re.search('<html',head,re.IGNORECASE):
-            if not re.search('<xhtml',head,re.IGNORECASE):
-                if not re.search('<xml',head,re.IGNORECASE):
+        if not re.search('<html',page,re.IGNORECASE):
+            if not re.search('<xhtml',page,re.IGNORECASE):
+                if not re.search('<xml',page,re.IGNORECASE):
                     return False # exclude if we can't check content
                 
         # parse here to get text
