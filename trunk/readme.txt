@@ -1,6 +1,13 @@
 URLNET PYTHON LIBRARY README FILE
-VERSION 0.90
-12 OCTOBER 2009
+VERSION 0.90.01
+13 OCTOBER 2009
+==================
+NEWS FLASH
+==================
+This is an interim update to the release candidate for 0.90, with updates to code only. 
+The documentation is currently out of date with respect to inclusion/exclusion
+checking; the code shown in the manual will work, but contains an extra step
+that is redundant in the updated library.
 
 0	DEPENDENCIES
 	- Python 2.5 (http://www.python.org/download/releases/2.5/)
