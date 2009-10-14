@@ -55,7 +55,7 @@ def main():
         'compoundthinking.com/blog/index.php/tag',
         ]
     
-    x = GoogleLinkTree(_maxLevel=2,
+    net = GoogleLinkTree(_maxLevel=2,
                     _workingDir=workingDir,
                     _resultLimit=20)
                     
