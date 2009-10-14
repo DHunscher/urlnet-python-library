@@ -800,9 +800,8 @@ def CheckInclusionExclusionCriteria(network,theUrl,level):
             network.exclude_patternlist_flags = network.GetProperty('exclude_patternlist_flags')
                 
             if network.include_patternlist == None and network.exclude_patternlist == None:
-                log.Write('No criteria for inclusion/exclusion!')
+                # turn off page content checking
                 network.check4InclusionExclusionCriteria = NO_INCLEXCL
-                network.SetPageContentCheckerFn(None)
                 return True # no regex searches needed
         if level < network.includeexclude_level:
             return True # no regex searches needed
