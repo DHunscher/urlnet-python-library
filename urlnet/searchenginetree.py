@@ -256,7 +256,7 @@ class SearchEngineTree(UrlTree):
             url = self.urlclass(_inboundUrl=queryURL,_network=self)
             url.SetLastError(None)
             Urls = url.GetAnchorList()
-            if url.GetLastError() != None:
+            if url.GetLastError() != 'None':
                 raise Exception, url.GetLastError()
             if putRoot:
                 self.PutRootUrl(queryURL)
