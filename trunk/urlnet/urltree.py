@@ -255,6 +255,7 @@ class UrlTree(Object):
             
             self.PageContentCheckerFn = CheckInclusionExclusionCriteria
             self.applyInclusionExclusionCriteriaByURL = None
+            self.useCachedPageIfItExists = True
             
             # initialize attributes used in default inclusion/exclusion
             # checker
