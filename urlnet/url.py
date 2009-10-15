@@ -200,7 +200,8 @@ class Url(Object):
         self.ResetLastError()
         
         # if we got the page earlier, 
-        if self.thePage != None and getTitleOnly == False:
+        if self.thePage != None and getTitleOnly == False \
+               and self.network.useCachedPageIfItExists == True:
             return self.thePage
         
         # if we tried to get the page earlier and failed, return an

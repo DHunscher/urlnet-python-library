@@ -71,6 +71,10 @@ class NCBIUrl(Url):
         self.start = start
         self.anchors = None
         self.url = _inboundUrl
+        # turn off use of cached pages, if it is turned on
+        # (which it is by default in descendant classes of UrlTree)
+        if self.network.useCachedPageIfItExists == True:
+            self.network.useCachedPageIfItExists = False
         
 
 
@@ -362,7 +366,7 @@ class NCBIUrl(Url):
                 
             # append ids to params, if they were passed in, but urlencode the others first
             urlencoded_params = urlencode(params)
-            if ids:
+            if (ids) and 'WebEnv=' not in urlencoded_params:
                 for id in ids:
                     urlencoded_params = urlencoded_params + '&id=' + id
             search_url = self.base + "efetch.fcgi?" + urlencoded_params;
@@ -426,8 +430,9 @@ class NCBIUrl(Url):
                 for i in range(0,len(ids),self.idcountlimit):
                     subset_ids = ids[i:i+self.idcountlimit]
                     subset_urlencoded_params = urlencoded_params
-                    for id in subset_ids:
-                        subset_urlencoded_params = subset_urlencoded_params + '&id=' + id
+                    if (subset_ids) and 'WebEnv=' not in subset_urlencoded_params:
+                        for id in subset_ids:
+                            subset_urlencoded_params = subset_urlencoded_params + '&id=' + id
                     search_url = self.base + "esummary.fcgi?" + subset_urlencoded_params
                     log.Write('esummary query:'+search_url)
                     subsetData = self.RetrieveUrlContent(search_url)
@@ -501,7 +506,7 @@ class NCBIUrl(Url):
 
             # append ids to params, if they were passed in, but urlencode the others first
             urlencoded_params = urlencode(params)
-            if ids:
+            if (ids) and 'WebEnv=' not in urlencoded_params:
                 for id in ids:
                     urlencoded_params = urlencoded_params + '&id=' + id
             search_url = self.base + "elink.fcgi?" + urlencoded_params;
