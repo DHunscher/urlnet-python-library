@@ -170,6 +170,7 @@ class NCBIPubMedUrl(NCBIUrl):
                 
         """
         log = Log('ParseDocsFromPubMedAbstractDocument')
+        log.Write(data)
 
         class doc_processor:
             def __init__(self):

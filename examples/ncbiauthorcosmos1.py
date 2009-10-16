@@ -33,6 +33,8 @@ mylog = urlnet.log.Log('main')
 net = NCBIAuthorCosmosTree(_maxLevel=2,
                    _workingDir=workingDir,
                    _sleeptime=1)
+                
+net.SetProperty('email','dalehunscher@gmail.com')
 ret = net.BuildUrlTree('Strecher VJ')
 
 if ret:

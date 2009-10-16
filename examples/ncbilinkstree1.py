@@ -47,7 +47,8 @@ def main():
     if goAhead:
         try:
             net = NCBILinksTree(_maxLevel=1)
-            net.SetProperty('nodeLengthLimit',50)
+            net.SetProperty('nodeLengthLimit',100)
+            net.SetProperty('email','dalehuns@umich.edu')
             # build the cosmos network of proteins, nucleotides, and SNPs around a gene
             dbs = urlnet.ncbiconstants.ConcatDBNames( (urlnet.ncbiconstants.PROTEIN,
                                                        urlnet.ncbiconstants.NUCLEOTIDE,

@@ -358,7 +358,6 @@ class NCBIUrl(Url):
             email = self.network.GetProperty('email')
             if email:
                 params['email'] = email
-                
             if WebEnv != None and len(WebEnv) > 0 \
                and query_key != None and len(query_key) > 0:
                 params['WebEnv'] = WebEnv
@@ -370,8 +369,9 @@ class NCBIUrl(Url):
                 for id in ids:
                     urlencoded_params = urlencoded_params + '&id=' + id
             search_url = self.base + "efetch.fcgi?" + urlencoded_params;
-
+            log.Write('eFetch query:'+search_url)
             data = self.RetrieveUrlContent(search_url)
+            log.Write('eFetch result:'+data)
             # wrap this in a try block so we can examine local vars in debug mode when something goes wrong
             try:
                 self.ExceptionIfErrors(data)
@@ -384,8 +384,16 @@ class NCBIUrl(Url):
             raise Exception, str(e)
             
 
-    def eSummary(self,query_key = None,WebEnv = None,ids = None,db = 'pubmed',retmode = 'xml',
-                    rettype=None,retstart=0,retmax=0):
+    def eSummary(
+        self,
+        query_key = None,
+        WebEnv = None,
+        ids = None,
+        db = 'pubmed',
+        retmode = 'xml',
+        rettype=None,  
+        retstart=0,
+        retmax=0):
         """
         run NCBI esummary API
         """
@@ -425,14 +433,18 @@ class NCBIUrl(Url):
             # append ids to params, if they were passed in, but urlencode the others first
             urlencoded_params = urlencode(params)
             
-            if ids != None and len(ids) > 0:
+            if ids != None and len(ids) > 0 and 'WebEnv=' not in urlencoded_params:
                 data = ''
                 for i in range(0,len(ids),self.idcountlimit):
                     subset_ids = ids[i:i+self.idcountlimit]
                     subset_urlencoded_params = urlencoded_params
-                    if (subset_ids) and 'WebEnv=' not in subset_urlencoded_params:
-                        for id in subset_ids:
+                    first = True
+                    for id in subset_ids:
+                        if first:
+                            first = False
                             subset_urlencoded_params = subset_urlencoded_params + '&id=' + id
+                        else:
+                            subset_urlencoded_params = subset_urlencoded_params + ',' + id
                     search_url = self.base + "esummary.fcgi?" + subset_urlencoded_params
                     log.Write('esummary query:'+search_url)
                     subsetData = self.RetrieveUrlContent(search_url)
@@ -524,6 +536,12 @@ class NCBIUrl(Url):
         except Exception, e:
             self.SetLastError( str(e) )
             raise
+        
+    def RetrieveUrlContent(self,theUrl=None,getTitleOnly=False):
+        page = Url.RetrieveUrlContent(self,theUrl)
+        self.thePage = None
+        return page
+        
 
 def main(test):
     myLog = None
@@ -633,6 +651,7 @@ def main(test):
             
     except Exception, e:
         print str(e)
+        
         
 if __name__ == '__main__':
     for i in (\
