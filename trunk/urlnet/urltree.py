@@ -255,7 +255,6 @@ class UrlTree(Object):
             
             self.PageContentCheckerFn = CheckInclusionExclusionCriteria
             self.applyInclusionExclusionCriteriaByURL = None
-            self.useCachedPageIfItExists = True
             
             # initialize attributes used in default inclusion/exclusion
             # checker
@@ -274,6 +273,10 @@ class UrlTree(Object):
             self.lastPage = None
             self.earlyReadSucceeded = True
             
+            # default to using cached page if it exists; NCBI will turn this 
+            # off, and so will search engine programs, both of which
+            # do multiple HTTP GETs in the same Url-derived instance.
+            self.useCachedPageIfItExists = True
             
         except Exception, e:
             self.SetLastError('in UrlTree.__init__: ' + str(e))

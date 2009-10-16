@@ -47,7 +47,7 @@ def main():
     if goAhead:
         try:
             net = NCBILinksTree(_maxLevel=1)
-            net.SetProperty('nodeLengthLimit',50)
+            net.SetProperty('nodeLengthLimit',100)
             # build the cosmos network of genes, nucleotides, and SNPs around a protein
             # (dUTPase) related to HIV; throw in the related documents as well.
             dbs = urlnet.ncbiconstants.ConcatDBNames( (urlnet.ncbiconstants.GENE,
