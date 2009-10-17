@@ -217,6 +217,16 @@ class RegexQueryUrl(Url):
                 self.SetLastError( 'RegexQueryUrl.GetAnchorList' + ": " + str(type(inst)) + '\n' + self.url )
                 return []
 
+        
+    def getPage(self):
+        # just in case...
+        self.thePage = None
+        page = getPage(self)
+        # don't allow page cacheing on regex queries.
+        self.thePage = None
+        return page
+        
+
 
 if __name__ == '__main__':
     pass # unit test specific to this module needed!

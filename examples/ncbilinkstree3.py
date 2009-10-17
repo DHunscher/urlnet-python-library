@@ -39,7 +39,7 @@ def main():
         os.chdir(workingDir)
         myLog = urlnet.log.Log('main')
         urlnet.log.logging=True
-        urlnet.log.altfd=open('ncbilinkstree.log','w')
+        urlnet.log.altfd=open('ncbilinkstree.log.txt','w')
     except Exception,e:
         myLog.Write(str(e)+'\n')
         goAhead = False
@@ -48,14 +48,19 @@ def main():
         try:
             net = NCBILinksTree(_maxLevel=1)
             net.SetProperty('nodeLengthLimit',100)
-            # build the cosmos network of genes, nucleotides, and SNPs around a protein
-            # (dUTPase) related to HIV; throw in the related documents as well.
-            #dbs = urlnet.ncbiconstants.ConcatDBNames( (urlnet.ncbiconstants.GENE,
-            #                                           urlnet.ncbiconstants.SNP,
-            #                                           urlnet.ncbiconstants.PUBMED) )
-            dbs = urlnet.ncbiconstants.PUBMED
-            qry = '"sleep apnea, obstructive" AND "interleukin-6"'
-            net.BuildUrlForestWithPhantomRoot(qry,DbSrcOfIds=urlnet.ncbiconstants.PROTEIN,DbsToLink=dbs)
+            # write results of NCBI web service GETs to disk for later inspection
+            net.SetProperty('WriteELinkRawOutput', 'elinkoutput-raw.txt')
+            net.SetProperty('WriteESearchRawOutput', 'esearchoutput-raw.txt')
+            net.SetProperty('WriteEFetchRawOutput', 'efetchoutput-raw.txt')
+            net.SetProperty('WriteESummaryRawOutput', 'esummaryoutput-raw.txt')
+            # build the cosmos network of genes, nucleotides, and SNPs around
+            # a protein (IL-6) related to obstructive sleep apnea; throw in the 
+            # related documents as well.
+            
+            dbs = urlnet.ncbiconstants.PROTEIN
+            qry = 'obstructive sleep apnea and IL-6'
+            net.BuildUrlForestWithPhantomRoot(qry,DbSrcOfIds=urlnet.ncbiconstants.PUBMED,DbsToLink=dbs)
+            print qry
             net.WritePajekFile(qry,qry)
         except Exception, e:
             myLog.Write( str(e) )

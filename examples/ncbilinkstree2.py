@@ -39,7 +39,7 @@ def main():
         os.chdir(workingDir)
         myLog = urlnet.log.Log('main')
         urlnet.log.logging=True
-        urlnet.log.altfd=open('ncbilinkstree.log','w')
+        urlnet.log.altfd=open('ncbilinkstree.log.txt','w')
     except Exception,e:
         myLog.Write(str(e)+'\n')
         goAhead = False
@@ -48,6 +48,11 @@ def main():
         try:
             net = NCBILinksTree(_maxLevel=1)
             net.SetProperty('nodeLengthLimit',100)
+            # write results of NCBI web service GETs to disk for later inspection
+            net.SetProperty('WriteELinkRawOutput', 'elinkoutput-raw.txt')
+            net.SetProperty('WriteESearchRawOutput', 'esearchoutput-raw.txt')
+            net.SetProperty('WriteEFetchRawOutput', 'efetchoutput-raw.txt')
+            net.SetProperty('WriteESummaryRawOutput', 'esummaryoutput-raw.txt')
             # build the cosmos network of genes, nucleotides, and SNPs around a protein
             # (dUTPase) related to HIV; throw in the related documents as well.
             dbs = urlnet.ncbiconstants.ConcatDBNames( (urlnet.ncbiconstants.GENE,
