@@ -124,6 +124,12 @@ class NCBIUrl(Url):
             search_url = self.base + "esearch.fcgi?" + urlencode(params);
             log.Write('esearch query:'+search_url)
             data = self.RetrieveUrlContent(search_url)
+            log.Write('esearch result:\n'+data)
+            fn = self.network.GetProperty('WriteESearchRawOutput')
+            if fn:
+                fd = open(fn,'a')
+                fd.write(str(data))
+                fd.close()
             
             query_key = re.findall('<QueryKey>(.*)<\/QueryKey>',data,re.S)
             if len(query_key) > 0:
@@ -183,9 +189,11 @@ class NCBIUrl(Url):
             """
             
             data = self.eLink(DbSrcOfIds,DbsToLink,query_key,WebEnv,ids,linkname)
-            fd = open('elinkoutput-raw.txt','w')
-            fd.write(data)
-            fd.close()
+            fn = self.network.GetProperty('WriteELinkRawOutput')
+            if fn:
+                fd = open(fn,'a')
+                fd.write(str(data))
+                fd.close()
             linksets = ''
             links = re.findall('<LinkSet>(.*?)</LinkSet>',data,re.S)
             for link in links:
@@ -335,6 +343,9 @@ class NCBIUrl(Url):
         log = Log('eFetch')
         if (WebEnv == None or query_key == None) and ids == None:
             raise Exception, 'must pass either a list of ids or both a webenv and query_key'
+        elif (WebEnv == None or query_key == None) and (len(ids) == 0):
+            log.Write( 'WebEnv or query_key not passed, and empty ID set:' + \
+                    ' Did prior query fail to get results?' )
         try:
             if retmax == 0 or retmax == None:
                 if (self.netlimit == None or self.netlimit == 0) and ids != None:
@@ -371,7 +382,14 @@ class NCBIUrl(Url):
             search_url = self.base + "efetch.fcgi?" + urlencoded_params;
             log.Write('eFetch query:'+search_url)
             data = self.RetrieveUrlContent(search_url)
-            log.Write('eFetch result:'+data)
+            log.Write('eFetch result:\n'+data)
+            fn = self.network.GetProperty('WriteEFetchRawOutput')
+            if fn:
+                fd = open(fn,'a')
+                fd.write(str(data))
+                fd.close()
+
+            
             # wrap this in a try block so we can examine local vars in debug mode when something goes wrong
             try:
                 self.ExceptionIfErrors(data)
@@ -381,6 +399,7 @@ class NCBIUrl(Url):
         
         except Exception, e:
             self.SetLastError( str(e) )
+            log.Write(str(type(e)))
             raise Exception, str(e)
             
 
@@ -399,8 +418,11 @@ class NCBIUrl(Url):
         """
         i = 0
         log = Log('eSummary')
-        if (WebEnv == None or query_key == None) and (ids == None or len(ids) == 0):
+        if (WebEnv == None or query_key == None) and (ids == None):
             raise Exception, 'must pass either a list of ids or both a webenv and query_key'
+        elif (WebEnv == None or query_key == None) and (len(ids) == 0):
+            log.Write( 'WebEnv or query_key not passed, and empty ID set:' + \
+                    ' Did prior query fail to get results?' )
         try:
             if retmax == 0 or retmax == None:
                 if (self.netlimit == None or self.netlimit == 0) and ids != None:
@@ -451,16 +473,24 @@ class NCBIUrl(Url):
                     if self.GetLastError() != 'None':
                         log.Write('in ncbiurl.eSummary, RetrieveUrlContent failed: ' + self.GetLastError())
                     data = data + subsetData
+
             else:
                 search_url = self.base + "esummary.fcgi?" + urlencoded_params;
                 log.Write('esummary query:'+search_url)
                 data = self.RetrieveUrlContent(search_url)
             # wrap this in a try block so we can examine local vars in debug mode when something goes wrong
+            log.Write('eFetch result:\n'+data)
+            fn = self.network.GetProperty('WriteESummaryRawOutput')
+            if fn:
+                fd = open(fn,'a')
+                fd.write(str(data))
+                fd.close()
             self.ExceptionIfErrors(data,reportButDontDie=True)
             return data            
         
         except Exception, e:
             self.SetLastError( str(e) )
+            log.Write(str(type(e))+': '+str(e))
             raise Exception, str(e)
             
     def eLink(self,DbSrcOfIds,DbsToLink,query_key = None,WebEnv = None,ids=None,cmd=None,linkname=None):
@@ -482,11 +512,15 @@ class NCBIUrl(Url):
             if linkname != None and linkname not in ncbiconstants.linklist:
                 raise Exception, 'linkname ' + str(linkname) + ' not in legal linkname set'
             
-            if (WebEnv == None or query_key == None) and (ids == None or len(ids) == 0):
+            if (WebEnv == None or query_key == None) and (ids == None):
                 raise Exception, 'must pass either a list of ids or both a webenv and query_key'
-            
+
+            if (WebEnv == None or query_key == None) and (ids != None and len(ids) == 0):
+                log.Write( 'WebEnv or query_key not passed, and empty ID set:' + \
+                        ' Did prior query fail to get results?' )
+
             if (WebEnv != None and query_key != None) and ids != None:
-                log.Write( 'Both a list of ids and a webenv and query_key were passed; using ids' )
+                log.Write( 'Both a list of ids and a webenv and query_key were passed; using id set with %d ids' % len(ids) )
             
                 
 #            usehistory = 'y'
@@ -535,6 +569,7 @@ class NCBIUrl(Url):
             """
         except Exception, e:
             self.SetLastError( str(e) )
+            log.Write(str(type(e))+': '+str(e))
             raise
         
     def RetrieveUrlContent(self,theUrl=None,getTitleOnly=False):

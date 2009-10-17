@@ -309,9 +309,6 @@ class NCBIPubMedUrl(NCBIUrl):
         try:
             import xml
             factory = InputSource.DefaultFactory
-            #fd = open(os.path.join(urlutils.GetConfigValue('workingDir'),'data.txt'),'w')
-            #fd.write(data)
-            #fd.close()
             isrc = factory.fromString(data)
             parser = Sax.CreateParser()
             handler = doc_processor()

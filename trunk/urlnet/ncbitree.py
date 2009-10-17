@@ -134,7 +134,7 @@ class NCBITree(UrlTree):
             if _email:
                 self.SetProperty('email',_email)
             else:
-                _email = GetConfigValue("email")
+                _email = GetConfigValue("_email")
                 if _email:
                     self.SetProperty('email',_email)
                 
