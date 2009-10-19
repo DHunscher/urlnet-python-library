@@ -403,9 +403,9 @@ class SearchEngineTree(UrlTree):
         
         
     def PutRootUrl(self, urlToAdd):
-        """ this function operates a lot like PutUrl, but 'knows' that
-            this url is the root, therefore there will be no parent,
-            thereby simplifying processing.
+        """ this function is a wrapper around UrlTree.PutRootUrl
+            that allows us to use a more meaningful root URL in the
+            context of search engine result set analysis.
         """
         log = Log('PutRootUrl',urlToAdd)
         try:
@@ -413,17 +413,25 @@ class SearchEngineTree(UrlTree):
             if item:
                 # the query is a more meaningful name for the root than
                 # the URL we used to process it. Do both the URL and domain
-                # items.
+                # items. Prefix with the search engine name (derived from
+                # the network class, everything before the 'Tree')
+                netClass = str(self.__class__).split('.')[-1].split('Tree')[0]
+                cq = netClass + '--' + self.currentQuery
+                
+                #log.Write('classname='+cq)
+                
                 domainItem = self.GetDomainByIndex(self.GetIndexByDomain(item.GetDomain()))
-                domainItem.SetDomain( self.currentQuery )
-                item.SetDomain( self.currentQuery )
-                item.SetHost( self.currentQuery )
-                item.SetName( self.currentQuery )
+                domainItem.SetDomain(cq )
+                item.SetDomain(cq )
+                item.SetHost(cq )
+                item.SetName(cq )
                 
             return (item,itemIdx,pathPart)
                 
         except Exception, e:
-            self.SetLastError('in putRootUrl: ' + str(e) + '\nurl: ' + urlToAdd)
+            err = 'in putRootUrl: ' + str(e) + '\nurl: ' + urlToAdd
+            self.SetLastError(err)
+            log.Write(err)
             return (None,-1,'')
 
 
