@@ -32,7 +32,7 @@ urlnet.log.limit = 5.0
 
 # the following line causes output to be tee'd off to
 # the file we open for writing.
-urlnet.log.altfd = open(join(workingDir,'logging3.log'),'w')
+urlnet.log.altfd = open(join(workingDir,'logging3.log.txt'),'w')
 
 # The following line tells the log facility to write only to
 # the altfd file descriptor and not to stderr.

@@ -137,6 +137,14 @@ class Node(Object):
                 
             self.children[childIdx] = count
     
+    def GetName(self):
+        """ get the name of this node
+        """
+        return self.myName
+
+    def SetName(self,name):
+        self.myName = name
+
 def main():
     item = []
     idx = 1

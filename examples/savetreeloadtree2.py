@@ -35,6 +35,13 @@ mylog = urlnet.log.Log('main')
 net = NCBIAuthorCosmosTree(_maxLevel=2,
                    _workingDir=workingDir,
                    _sleeptime=1)
+                
+# write results of NCBI web service GETs to disk for later inspection
+net.SetProperty('WriteELinkRawOutput', 'elinkoutput-raw1.txt')
+net.SetProperty('WriteESearchRawOutput', 'esearchoutput-raw1.txt')
+net.SetProperty('WriteEFetchRawOutput', 'efetchoutput-raw1.txt')
+net.SetProperty('WriteESummaryRawOutput', 'esummaryoutput-raw1.txt')
+
 ret = net.BuildUrlTree('Strecher VJ')
 
 if ret:

@@ -45,9 +45,12 @@ class DomainNetItem(Node):
         Node.__init__(self, _idx, _net)
         self.SetName( _domain )
        
-
     def GetDomain(self):
         return self.GetName()
+
+    def SetDomain(self,domain):
+        self.SetName( domain )
+        
 
 def main():
     domains = [

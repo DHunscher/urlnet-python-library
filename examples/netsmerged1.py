@@ -26,8 +26,10 @@ from urlnet.searchenginetree import computeDescendingStraightLineProbabilityVect
 from urlnet.ignoreandtruncate import textToIgnore, textToTruncate
 import urlnet.log
 
+PLACEHOLDER = 'PLACEHOLDER'
+PHANTOM = 'PHANTOM'
 
-def main():
+def main(whichBuilder):
     """
     We are going to make a subdirectory under
     the working directory that will be different each run.
@@ -55,24 +57,45 @@ def main():
         myLog = Log('main')
         urlnet.log.logging=True
         #urlnet.log.trace=True
-        urlnet.log.altfd=open('netsmerged1.log','w')
+        urlnet.log.altfd=open('netsmerged1.log.txt','w')
     except Exception,e:
         myLog.Write(str(e)+'\n')
         goAhead = False
     try:
         # combine forests from 'quit smoking', 'stop smoking', and 'smoking cessation'
         # query result trees
-        x = AOLTree(_maxLevel=2,
+        net = AOLTree(_maxLevel=2,
                        _workingDir=workingDir,
                        _resultLimit=10)
-        x.SetIgnorableText(textToIgnore)
-        x.SetTruncatableText(textToTruncate)
+        net.SetIgnorableText(textToIgnore)
+        net.SetTruncatableText(textToTruncate)
+        ret = True
+        badQuery = None
         for query in ('quit smoking','stop smoking','smoking cessation'):
-            root='http://www.aol.com/search?q='+re.sub(' ','+',query)
-            x.BuildUrlTreeWithPlaceholderRoot(root,query)
-
-        query = 'done building net'
-        x.WritePajekFile('netsmerged1','netsmerged1')
+            # set a query filename root that tells us which builder method and query were used.
+            net.SetFilenameFromQuery('netsmerged1-%s-%s' % (str(whichBuilder),query))
+            net.RestoreOriginalUrlClass()
+            root='http://search.aol.com/aol/search?s_it=comsearch40&query=%s&do=Search' % re.sub(' ','+',query)
+            if whichBuilder == PLACEHOLDER:
+                ret = net.BuildUrlTreeWithPlaceholderRoot(root,query)
+            elif whichBuilder == PHANTOM:
+                ret = net.BuildUrlForestWithPhantomRoot(query)
+            else:
+                goAhead = False
+                break
+            if not ret:
+                badQuery = query
+                break
+            
+        if goAhead == False:
+            print 'main(whichBuilder) requires whichBuilder to be PHANTOM or PLACEHOLDER-nothing built.'
+        elif not ret:
+            print 'main(whichBuilder) %s builder function failed for query "%s".' % (whichBuilder, badQuery )
+        else:
+            qry = query
+            query = 'done building net'
+            netname = 'netsmerged1-%s' % str(whichBuilder)
+            net.WritePajekFile(netname,netname)
 
     except Exception,e:
         if query == None:
@@ -92,9 +115,10 @@ def main():
     os.chdir(oldDir)
         
 if __name__ == '__main__':
-    main()
-    sys.exit(0)
-
-    """
-    schtasks /Create /SC DAILY /ST 12:00:00 /TN stopsmoking-collector /TR "c:\Python25\python25.exe c:\docume~1\dalehuns\desktop\blogstuff\aol-stopsmoking-collector.py 1"
-    """    
+    # Uncomment to one of these to choose between 
+    # net.BuildUrlForestWithPhantomRoot and net.BuildUrlTreeWithPlaceholderRoot
+    
+    # main(PHANTOM)
+    main(PLACEHOLDER)
+    print 'Complete!'
+    

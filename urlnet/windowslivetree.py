@@ -173,11 +173,6 @@ class WindowsLiveTree(SearchEngineTree):
                          })
         query = prefix + query
 
-
-        # create a name we can use for writing a file with the result set URLs later,
-        # and set the 'SEQueryFileName' property with the generated filename
-        self.SetFilenameFromQuery(freeTextQuery)
-
         return query
 
 

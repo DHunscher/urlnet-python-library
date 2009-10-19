@@ -49,10 +49,10 @@ def main():
             net = NCBILinksTree(_maxLevel=1)
             net.SetProperty('nodeLengthLimit',100)
             # write results of NCBI web service GETs to disk for later inspection
-            net.SetProperty('WriteELinkRawOutput', 'elinkoutput-raw.txt')
-            net.SetProperty('WriteESearchRawOutput', 'esearchoutput-raw.txt')
-            net.SetProperty('WriteEFetchRawOutput', 'efetchoutput-raw.txt')
-            net.SetProperty('WriteESummaryRawOutput', 'esummaryoutput-raw.txt')
+            net.SetProperty('WriteELinkRawOutput', 'elinkoutput-raw3.txt')
+            net.SetProperty('WriteESearchRawOutput', 'esearchoutput-raw3.txt')
+            net.SetProperty('WriteEFetchRawOutput', 'efetchoutput-raw3.txt')
+            net.SetProperty('WriteESummaryRawOutput', 'esummaryoutput-raw3.txt')
             # build the cosmos network of genes, nucleotides, and SNPs around
             # a protein (IL-6) related to obstructive sleep apnea; throw in the 
             # related documents as well.

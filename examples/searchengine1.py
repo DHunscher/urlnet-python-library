@@ -57,7 +57,7 @@ def main():
         myLog = urlnet.log.Log('main')
         urlnet.log.logging=True
         #urlnet.log.trace=True
-        urlnet.log.altfd=open('searchengine1.log','w')
+        urlnet.log.altfd=open('searchengine1.log.txt','w')
     except Exception,e:
         myLog.Write(str(e)+'\n')
         goAhead = False

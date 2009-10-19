@@ -54,7 +54,7 @@ def main():
     myLog = Log('main')
     urlnet.log.logging=True
     #urlnet.log.trace=True
-    urlnet.log.altfd=open('aoltree.log','w')
+    urlnet.log.altfd=open('aoltree.log.txt','w')
     try:
         try:
             os.mkdir(workingDir)
@@ -63,7 +63,7 @@ def main():
         os.chdir(workingDir)
         urlnet.log.logging=True
         #urlnet.log.trace=True
-        urlnet.log.altfd=open('aoltree.log','w')
+        urlnet.log.altfd=open('aoltree.log.txt','w')
     except Exception,e:
         myLog.Write(str(e)+'\n')
         return

@@ -109,7 +109,7 @@ class AOLTree(SearchEngineTree):
             # If the property is not set, the default Url class will be used.
             self.SetProperty('nextUrlClass',Url)
             # AOL-specific regex pattern
-            self.SetProperty('regexPattern','<p class="deleted" property="f:url">(.*?)</p>')
+            self.SetProperty('regexPattern','<span property="f:durl">(.*?)</span>')
             self.SetProperty('findall_args',re.S)
         
         except Exception, e:
@@ -132,10 +132,30 @@ class AOLTree(SearchEngineTree):
                   'Exception in AOLTree.FormatSEQuery: ' \
                   + "numSearchEngineResults property must be one of '10' or '20'"
         prefix = 'http://search.aol.com/aol/search?'
-        query=urlencode({'invocationType' : 'advancedSearch',
-                         'count_override' : numResults,
+        '''
+        breakdown of AOL Search query as of 10-18-09:
+        
+        http://search.aol.com/aol/search?
+        s_it=advancedSearch&
+        as_q=quit+smoking&
+        count_override=20&
+        btnG=AOL+Search&
+        as_epq=&
+        as_oq=&
+        as_eq=&
+        lr=&
+        as_ft=i&
+        as_filetype=&
+        as_qdr=anytime&
+        as_nlo=&
+        as_nhi=&
+        as_dt=i&
+        ex_as_sitesearch=&
+        as_rights=
+        '''
+        query=urlencode({'s_it' : 'advancedSearch',
                          'as_q': freeTextQuery,
-                         'invocationType' : 'advancedSearch',
+                         'count_override' : numResults,
                          'btnG' : 'AOL+Search',
                          'as_epq' : '',
                          'as_oq' : '',
@@ -151,10 +171,6 @@ class AOLTree(SearchEngineTree):
                          'as_rights' : '',
                          })
         query = prefix + query
-
-        # create a name we can use for writing a file with the result set URLs later,
-        # and set the 'SEQueryFileName' property with the generated filename
-        self.SetFilenameFromQuery(freeTextQuery)
 
         return query
 
