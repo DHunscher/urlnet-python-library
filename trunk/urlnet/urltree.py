@@ -278,6 +278,9 @@ class UrlTree(Object):
             # do multiple HTTP GETs in the same Url-derived instance.
             self.useCachedPageIfItExists = True
             
+            # Url's constructor will use this to support restoring later
+            self.originalUrlClass = None
+            
         except Exception, e:
             self.SetLastError('in UrlTree.__init__: ' + str(e))
             raise
@@ -851,6 +854,18 @@ class UrlTree(Object):
             return params
         except Exception, e:
             self.SetLastError( 'ParamsDictFromUrl: ' + str(e) + '\n\url: << ' + self.url + ' >>' )
+            return params
+            
+    def RestoreOriginalUrlClass(self):
+        """ look at, and possibly replace or erase, the url we
+                encountered in search
+        """
+        log = Log('RestoreOriginalUrlClass')
+        try:
+            if self.originalUrlClass != None and self.originalUrlClass != self.urlclass:
+                self.urlclass = self.originalUrlClass
+        except Exception, e:
+            self.SetLastError( 'in RestoreOriginalUrlClass, %s: %s' % (str(type(e)), str(e))  )
             return params
             
     def MassageUrl(self,url,level):

@@ -201,10 +201,11 @@ class SearchEngineTree(UrlTree):
             if self.probabilityVector != None and self.probabilityVectorGenerator == None:
                 self.probabilityVectorGenerator = computeEqualProbabilityVector
             
-            self.topLevelUrls = None
-            '''
-            TODO: Fix GUESS processing to handle new approach to URL attrs
             
+            self.topLevelUrls = None
+            
+            self.currentQuery = None
+            '''
             if self.probabilityVector != None:
                 proplist = self.GetProperty('additionalUrlAttrs')
                 if proplist == None:
@@ -253,13 +254,17 @@ class SearchEngineTree(UrlTree):
     def GetSEResultSet(self,query,putRoot=False):
         try:
             queryURL = self.FormatSEQuery(query)
+            self.currentQuery = query
             url = self.urlclass(_inboundUrl=queryURL,_network=self)
             url.SetLastError(None)
             Urls = url.GetAnchorList()
             if url.GetLastError() != 'None':
                 raise Exception, url.GetLastError()
             if putRoot:
-                self.PutRootUrl(queryURL)
+                (item,itemIdx,pathPart) = self.PutRootUrl(queryURL)
+                if not item:
+                    raise Exception, 'putRoot call failed on %s' % queryURL
+                
             return (queryURL,url,Urls)
         except Exception, e:
             raise Exception, 'in SearchEngineTree.BuildUrlTree: ' + str(e)
@@ -273,10 +278,11 @@ class SearchEngineTree(UrlTree):
             else:
                 name = name + '_'
         if len(name) == 0:
-            name = 'googletree_query'
+            name = 'searchengine_query'
         timestamp = self.GetProperty('timestamp')
         if not timestamp:
             timestamp = GetTimestampString()
+            self.SetProperty('timestamp', timestamp)
         self.SetProperty('SEQueryFileName', timestamp + '-' + name + '.txt')
 
            
@@ -395,6 +401,32 @@ class SearchEngineTree(UrlTree):
                               )
             return False
         
+        
+    def PutRootUrl(self, urlToAdd):
+        """ this function operates a lot like PutUrl, but 'knows' that
+            this url is the root, therefore there will be no parent,
+            thereby simplifying processing.
+        """
+        log = Log('PutRootUrl',urlToAdd)
+        try:
+            (item,itemIdx,pathPart) = UrlTree.PutRootUrl(self,urlToAdd)
+            if item:
+                # the query is a more meaningful name for the root than
+                # the URL we used to process it. Do both the URL and domain
+                # items.
+                domainItem = self.GetDomainByIndex(self.GetIndexByDomain(item.GetDomain()))
+                domainItem.SetDomain( self.currentQuery )
+                item.SetDomain( self.currentQuery )
+                item.SetHost( self.currentQuery )
+                item.SetName( self.currentQuery )
+                
+            return (item,itemIdx,pathPart)
+                
+        except Exception, e:
+            self.SetLastError('in putRootUrl: ' + str(e) + '\nurl: ' + urlToAdd)
+            return (None,-1,'')
+
+
     def AssignDomainProbability(self,item,old_prob = None):
         '''
         

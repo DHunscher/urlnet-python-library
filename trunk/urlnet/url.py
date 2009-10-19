@@ -113,6 +113,11 @@ class Url(Object):
             self.thePage = None
             self.earlyReadSucceeded = True
         self.network=_network
+        
+        # save this for use in repeated calls to network builder functions
+        if self.network.originalUrlClass == None:
+            self.network.originalUrlClass = self.network.urlclass
+            
         self.sleeptime = self.network.GetProperty('sleeptime')
         if self.sleeptime:
             try:

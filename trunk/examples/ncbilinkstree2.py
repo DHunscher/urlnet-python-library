@@ -49,10 +49,10 @@ def main():
             net = NCBILinksTree(_maxLevel=1)
             net.SetProperty('nodeLengthLimit',100)
             # write results of NCBI web service GETs to disk for later inspection
-            net.SetProperty('WriteELinkRawOutput', 'elinkoutput-raw.txt')
-            net.SetProperty('WriteESearchRawOutput', 'esearchoutput-raw.txt')
-            net.SetProperty('WriteEFetchRawOutput', 'efetchoutput-raw.txt')
-            net.SetProperty('WriteESummaryRawOutput', 'esummaryoutput-raw.txt')
+            net.SetProperty('WriteELinkRawOutput', 'elinkoutput-raw2.txt')
+            net.SetProperty('WriteESearchRawOutput', 'esearchoutput-raw2.txt')
+            net.SetProperty('WriteEFetchRawOutput', 'efetchoutput-raw2.txt')
+            net.SetProperty('WriteESummaryRawOutput', 'esummaryoutput-raw2.txt')
             # build the cosmos network of genes, nucleotides, and SNPs around a protein
             # (dUTPase) related to HIV; throw in the related documents as well.
             dbs = urlnet.ncbiconstants.ConcatDBNames( (urlnet.ncbiconstants.GENE,

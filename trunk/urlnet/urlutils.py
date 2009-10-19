@@ -275,6 +275,7 @@ def GetNameOfItem(item,idx,useTitles):
     item prefixed by the letter 'v' for vertex.
     '''
     name = None
+
     if useTitles:
         name = item.GetUrl().GetProperty('title')
     if name == None or len(name) == 0:

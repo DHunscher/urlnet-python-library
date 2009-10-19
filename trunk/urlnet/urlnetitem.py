@@ -74,12 +74,15 @@ class UrlNetItem(Node):
         self.myDomainIdx = None
         self.myNet = _net
         self.myUrl = self.urlclass(_inboundUrl=_url,_network=_net)
-        self.myDomainName = self.myUrl.GetDomain()
-        self.myHostName = self.myUrl.GetHost()
-        
+        self.SetDomain( self.myUrl.GetDomain() )
+        self.SetHost( self.myUrl.GetHost() )
+        self.SetName( self.myUrl.GetUrl() )
+    
+    # getters
     
     def GetUrl(self):
-        """ get the url this instance represents
+        """ get the Url class instance that this UrlNetItem instance 
+            wraps.
         """
         return self.myUrl
 
@@ -88,23 +91,27 @@ class UrlNetItem(Node):
         """
         return self.myUrl.GetUrl()
 
-    def GetName(self):
-        """ get the url this instance represents
-        """
-        return self.myUrl.GetUrl()
-
-    def SetDomainIdx(self,idx):
-        self.myDomainIdx = idx
-    
-
     def GetDomainIdx(self):
         return self.myDomainIdx
+
+    # getters
 
     def GetDomain(self):
         return self.myDomainName
         
     def GetHost(self):
         return self.myHostName
+        
+    # setters
+    
+    def SetDomainIdx(self,idx):
+        self.myDomainIdx = idx
+    
+    def SetDomain(self,domain):
+        self.myDomainName = domain
+        
+    def SetHost(self,host):
+        self.myHostName = host
         
     
 def main():

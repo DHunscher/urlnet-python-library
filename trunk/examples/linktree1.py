@@ -62,7 +62,7 @@ def main():
         myLog = Log('main')
         urlnet.log.logging=True
         #log.trace=True
-        urlnet.log.altfd=open('GoogleLinkTree.log','w')
+        urlnet.log.altfd=open('GoogleLinkTree.log.txt','w')
     except Exception,e:
         myLog.Write(str(e)+'\n')
 

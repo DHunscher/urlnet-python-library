@@ -135,10 +135,6 @@ class BingTree(SearchEngineTree):
         query=urlencode({ 'q': freeTextQuery, })
         query = prefix + query
 
-        # create a name we can use for writing a file with the result set URLs later,
-        # and set the 'SEQueryFileName' property with the generated filename
-        self.SetFilenameFromQuery(freeTextQuery)
-
         return query
 
 
