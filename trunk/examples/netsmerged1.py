@@ -62,7 +62,7 @@ def main(whichBuilder):
         myLog.Write(str(e)+'\n')
         goAhead = False
     try:
-        # combine forests from 'quit smoking', 'stop smoking', and 'smoking cessation'
+        # combine 'quit smoking', 'stop smoking', and 'smoking cessation'
         # query result trees
         net = AOLTree(_maxLevel=2,
                        _workingDir=workingDir,
@@ -74,7 +74,14 @@ def main(whichBuilder):
         for query in ('quit smoking','stop smoking','smoking cessation'):
             # set a query filename root that tells us which builder method and query were used.
             net.SetFilenameFromQuery('netsmerged1-%s-%s' % (str(whichBuilder),query))
+
+            # NOTE: the following line is crucial to making the merge work
+            # as expected. Without it, the search URL is treated as an
+            # ordinary URL and all links on that page are processed, not just
+            # the links in the search results.
+            
             net.RestoreOriginalUrlClass()
+            
             root='http://search.aol.com/aol/search?s_it=comsearch40&query=%s&do=Search' % re.sub(' ','+',query)
             if whichBuilder == PLACEHOLDER:
                 ret = net.BuildUrlTreeWithPlaceholderRoot(root,query)
