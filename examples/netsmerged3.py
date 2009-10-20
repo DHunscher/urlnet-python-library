@@ -13,8 +13,6 @@
 ###################################################################
 # netsmerged2.py
 
-# TODO: Figure out why pos probs not working for placeholder trees.
-
 import sys
 import os
 from os.path import join

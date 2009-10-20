@@ -150,7 +150,7 @@ class HealiaTree(SearchEngineTree):
                 Urls = Urls + url.GetAnchorList()
             if putRoot:
                 self.PutRootUrl(queryURL)
-            self.topLevelUrls = Urls
+            self.topLevelUrls.append( Urls )
             return (queryURL,url,Urls)
         except Exception, e:
             raise Exception, 'in HealiaTree.GetSEResultSet: ' + str(e)

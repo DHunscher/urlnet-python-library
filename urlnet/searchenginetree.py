@@ -147,7 +147,8 @@ class SearchEngineTree(UrlTree):
     """
     probabilityVector = None
     probabilityDefault = None
-    topLevelUrls = None
+    topLevelUrls = []
+    currentSet = 0
     def __init__(self,
                  _maxLevel = 2,
                  _singleDomain=False,
@@ -202,9 +203,12 @@ class SearchEngineTree(UrlTree):
                 self.probabilityVectorGenerator = computeEqualProbabilityVector
             
             
-            self.topLevelUrls = None
+            self.topLevelUrls = []
             
             self.currentQuery = None
+            
+            self.currentRun = 0
+
             '''
             if self.probabilityVector != None:
                 proplist = self.GetProperty('additionalUrlAttrs')
@@ -257,6 +261,7 @@ class SearchEngineTree(UrlTree):
             self.currentQuery = query
             url = self.urlclass(_inboundUrl=queryURL,_network=self)
             url.SetLastError(None)
+            url.SetProperty('isRootUrl',True)
             Urls = url.GetAnchorList()
             if url.GetLastError() != 'None':
                 raise Exception, url.GetLastError()
@@ -299,6 +304,7 @@ class SearchEngineTree(UrlTree):
         log = Log('SearchEngineQueryTree.BuildUrlTree','startUrl=' + str(startUrl) + '\nparent idx=' + str(parentItemIdx) + '\nlevel=' + str(currentLevel))
         try:
             if currentLevel == None and '://' not in startUrl:
+                self.currentRun += 1
                 (queryURL,url,Urls) = self.GetSEResultSet(query=startUrl,putRoot=True)
                 
                 # check URLs for ignorable text, if any is defined
@@ -323,6 +329,8 @@ class SearchEngineTree(UrlTree):
             else:
                 if currentLevel == None:
                     currentLevel = 0
+                    self.currentRun += 1
+
                 ret = UrlTree.BuildUrlTree(self,startUrl,parentItemIdx,currentLevel,alreadyMassaged)
                     
                 return ret
@@ -349,6 +357,7 @@ class SearchEngineTree(UrlTree):
                 else:
                     massagedUrls.append(u)
             Urls = massagedUrls"""
+            self.currentRun += 1
             return UrlTree.BuildUrlTreeWithPlaceholderRoot(self,rootPlaceholder,Urls)
         except Exception, e:
             raise Exception, 'in SearchEngineTree.BuildUrlTreeWithPlaceholderRoot: ' + str(e)
@@ -381,6 +390,7 @@ class SearchEngineTree(UrlTree):
             Urls = massagedUrls
             
             self.isPhantomRoot=True
+            self.currentRun += 1
             phantomRoot = queryURL
             parts = urlparse(phantomRoot)
             self.rootDomain = DomainFromHostName(parts.hostname)
@@ -467,43 +477,53 @@ class SearchEngineTree(UrlTree):
         self.ResetLastError()
         log = Log('SearchEngineTree.AssignTopLevelProbabilities')
         try:
-            if self.topLevelUrls == None or self.probabilityVector == None:
+            if self.topLevelUrls == [] or self.probabilityVector == None:
                 return True
             
+            if len(self.topLevelUrls) != self.currentRun:
+                log.Write( \
+                  'len(self.topLevelUrls) [%d] != self.currentRun [%d]' \
+                  % (len(self.topLevelUrls), self.currentRun))
+                log.Write('self.topLevelUrls = %s' % str(self.topLevelUrls))
             for i in range(0,len(self.topLevelUrls)):
-                self.topLevelUrls[i] = self.topLevelUrls[i].split('#')[0]    
-                while self.topLevelUrls[i][-1:] == '/':
-                    self.topLevelUrls[i] = self.topLevelUrls[i][:-1]
-                
-                item = self.GetUrlNetItemByUrl(self.topLevelUrls[i])
-                if not item:
-                        log.Write( 'self.GetUrlNetItemByUrl failed for top-level url #' + str(i+1) + ': ' + str(self.topLevelUrls[i]) )
-                        continue
-                if item.GetProperty('pos_prob') == None:
-                    if i < len(self.probabilityVector):
-                        item.SetProperty('pos_prob',self.probabilityVector[i])
-                        self.AssignDomainProbability(item)
-                        if item.GetNumberOfChildren() > 0:
-                            self.AssignProbabilitiesToChildUrls(item,self.probabilityVector[i])
+                for j in range(0,len(self.topLevelUrls[i])):
+                    self.topLevelUrls[i][j] = self.topLevelUrls[i][j].split('#')[0]    
+                    while self.topLevelUrls[i][j][-1:] == '/':
+                        self.topLevelUrls[i][j] = self.topLevelUrls[i][j][:-1]
+                    
+                    item = self.GetUrlNetItemByUrl(self.topLevelUrls[i][j])
+                    if not item:
+                            log.Write( \
+                              'self.GetUrlNetItemByUrl failed for ' \
+                              + ('top-level url #%s in set #%s: %s' \
+                              % (str(j+1), str(i+1), \
+                              str(self.topLevelUrls[i][j]) ) ) )
+                            continue
+                    if item.GetProperty('pos_prob') == None:
+                        if j < len(self.probabilityVector):
+                            item.SetProperty('pos_prob',self.probabilityVector[j])
+                            self.AssignDomainProbability(item)
+                            if item.GetNumberOfChildren() > 0:
+                                self.AssignProbabilitiesToChildUrls(item,self.probabilityVector[j])
+                        else:
+                            item.SetProperty('pos_prob',self.probabilityDefault)
+                            # self.AssignDomainProbability(item)
+                            if item.GetNumberOfChildren() > 0:
+                                self.AssignProbabilitiesToChildUrls(item,self.probabilityDefault)
                     else:
-                        item.SetProperty('pos_prob',self.probabilityDefault)
-                        # self.AssignDomainProbability(item)
-                        if item.GetNumberOfChildren() > 0:
-                            self.AssignProbabilitiesToChildUrls(item,self.probabilityDefault)
-                else:
-                    old_prob = item.GetProperty('pos_prob')
-                    if i < len(self.probabilityVector):
-                        # only override if we can do better than the probability already set
-                        if self.probabilityVector[i] > old_prob:
-                            item.SetProperty('pos_prob',self.probabilityVector[i])
-                            self.AssignDomainProbability(item, old_prob)
-                        if item.GetNumberOfChildren() > 0:
-                            self.AssignProbabilitiesToChildUrls(item,self.probabilityVector[i])
-                    else:
-                        item.SetProperty('pos_prob',self.probabilityDefault)
-                        #self.AssignDomainProbability(item)
-                        if item.GetNumberOfChildren() > 0:
-                            self.AssignProbabilitiesToChildUrls(item,self.probabilityDefault)
+                        old_prob = item.GetProperty('pos_prob')
+                        if i < len(self.probabilityVector):
+                            # only override if we can do better than the probability already set
+                            if self.probabilityVector[j] > old_prob:
+                                item.SetProperty('pos_prob',self.probabilityVector[j])
+                                self.AssignDomainProbability(item, old_prob)
+                            if item.GetNumberOfChildren() > 0:
+                                self.AssignProbabilitiesToChildUrls(item,self.probabilityVector[j])
+                        else:
+                            item.SetProperty('pos_prob',self.probabilityDefault)
+                            #self.AssignDomainProbability(item)
+                            if item.GetNumberOfChildren() > 0:
+                                self.AssignProbabilitiesToChildUrls(item,self.probabilityDefault)
             return True
         except Exception, e:
             self.SetLastError( 'in SearchEngineTree.AssignTopLevelProbabilities: ' + str(e) )

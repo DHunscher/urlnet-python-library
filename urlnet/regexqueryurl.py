@@ -208,8 +208,8 @@ class RegexQueryUrl(Url):
                         myLog.Write('top level url "' + url + '" rejected by MassageUrl')
                     i = i + 1
                     
-                if self.network.topLevelUrls == None:
-                    self.network.topLevelUrls = self.anchors
+                if self.network.topLevelUrls == [] or self.GetProperty('isRootUrl') != None:
+                    self.network.topLevelUrls.append(self.anchors)
                     
                 return self.anchors
                     
