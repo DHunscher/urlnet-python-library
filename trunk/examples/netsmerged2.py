@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# $Id$
+# $Id: netsmerged2.py 82 2009-10-19 13:44:07Z dalehunscher $
 ###################################################################
 #                                                                 #
 #                     UrlNet Python Library                       #
@@ -11,7 +11,7 @@
 # For commercial uses, contact dale.hunscher@thenextroguewave.com #
 #                                                                 #
 ###################################################################
-# netsmerged1.py
+# netsmerged2.py
 
 import sys
 import os
@@ -22,6 +22,7 @@ from urlnet.log import Log, logging, altfd
 from urlnet.aoltree import AOLTree
 from urlnet.urlutils import GetTimestampString, GetConfigValue
 from urlnet.ignoreandtruncate import textToIgnore, textToTruncate
+from urlnet.topleveldomainutils import SetUrlTLDProperties
 import urlnet.log
 
 # These two constants are the possible values for the 
@@ -53,24 +54,116 @@ def main(whichBuilder):
         myLog = Log('main')
         urlnet.log.logging=True
         #urlnet.log.trace=True
-        urlnet.log.altfd=open('netsmerged1.log.txt','w')
+        urlnet.log.altfd=open('netsmerged2.log.txt','w')
     except Exception,e:
         myLog.Write(str(e)+'\n')
         goAhead = False
     try:
+        tldExceptions = { 
+            'smoking-cessation.org': 'fake', 
+            'whyquit.com' : 'org',
+            'quitsmokingnaturally.org' : 'fake',
+            'stopsmoking.org' : 'fake',
+            'smokingreviews.org' : 'fake',
+            'allthewebsites.org' : 'fake',
+            'mayoclinic.com' : 'org',
+            }
+            
         # combine 'quit smoking', 'stop smoking', and 'smoking cessation'
         # query result trees
-        net = AOLTree(_maxLevel=2,
+        net = AOLTree(_maxLevel=1,
                         _workingDir=workingDir,
                         _resultLimit=10
                         )
+                        
+                        
+        #
+        # tell the builder algorithm to call the function
+        # urlnet.topleveldomainutils.SetUrlTLDProperties
+        # to capture TLD properties.
+        
+        net.SetCustomUrlPropertiesFn(SetUrlTLDProperties)
+        
+        # The same custom properties setter works for domains; this
+        # might not be the case for other applications.
+        
+        net.SetCustomDomainPropertiesFn(SetUrlTLDProperties)
+        
+        # TLDExceptions is a property used in the top-level domain algorithms;
+        # if your custom functions need properties to be set, do
+        # so here.
+        
+        net.SetProperty('TLDExceptions',tldExceptions)
+        
+        TLDPropertyDictList4Urls = \
+            [
+                {
+                    'attrName'    : 'forProfitUrlTLD',
+                    'PorVName'    : 'URL Net TLD For-Profit/Not-For-Profit', 
+                    'doPartition' : True,
+                    'default'     : 9999998,
+                    'datatype'    : 'INT',
+                },
+                {
+                    'attrName'    : 'urlTLD',
+                    'PorVName'    : 'URL Net TLD Type', 
+                    'doPartition' : True,
+                    'default'     : 9999998,
+                    'datatype'    : 'INT',
+                },
+                {
+                    'attrName'    : 'urlTLDVector',
+                    'PorVName'    : 'URL Net TLD Type', 
+                    'doPartition' : False,
+                    'default'     : 0.00001,
+                    'datatype'    : 'DOUBLE',
+                },
+            ]
+            
+        net.SetProperty('additionalUrlAttrs',TLDPropertyDictList4Urls)
+
+        TLDPropertyDictList4Domains = \
+            [
+                {
+                    'attrName'    : 'forProfitUrlTLD',
+                    'PorVName'    : 'Domain Net TLD For-Profit/Not-For-Profit', 
+                    'doPartition' : True,
+                    'default'     : 9999998,
+                    'datatype'    : 'INT',
+                },
+                {
+                    'attrName'    : 'urlTLD',
+                    'PorVName'    : 'Domain Net TLD Type', 
+                    'doPartition' : True,
+                    'default'     : 9999998,
+                    'datatype'    : 'INT',
+                },
+                {
+                    'attrName'    : 'urlTLDVector',
+                    'PorVName'    : 'Domain Net TLD Type', 
+                    'doPartition' : False,
+                    'default'     : 0.00001,
+                    'datatype'    : 'DOUBLE',
+                },
+            ]
+
+        
+        net.SetProperty('additionalDomainAttrs',TLDPropertyDictList4Domains)
+        
+        # we can safely ignore a bunch of URLs that have to do
+        # with marketing, Acrobat Reader, etc. We'll also ignore
+        # truste.org, but we want to remove yahoo.com from the 
+        # standard list.
+        
         net.SetIgnorableText(textToIgnore)
         net.SetTruncatableText(textToTruncate)
+        
+        
         ret = True
         badQuery = None
         for query in ('quit smoking','stop smoking','smoking cessation'):
             # set a query filename root that tells us which builder method and query were used.
-            net.SetFilenameFromQuery('netsmerged1-%s-%s' % (str(whichBuilder),query))
+            net.SetFilenameFromQuery('netsmerged2-%s-%s' % (str(whichBuilder),query))
 
             # NOTE: the following line is crucial to making the merge work
             # as expected. Without it, the search URL is treated as an
@@ -98,8 +191,10 @@ def main(whichBuilder):
         else:
             qry = query
             query = 'done building net'
-            netname = 'netsmerged1-%s' % str(whichBuilder)
+            netname = 'netsmerged2-%s' % str(whichBuilder)
             net.WritePajekFile(netname,netname)
+            net.WriteGuessFile(netname, doUrlNetwork = True)
+            net.WriteGuessFile(netname+'Domains', doUrlNetwork = False)
 
     except Exception,e:
         if query == None:

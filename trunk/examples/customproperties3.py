@@ -35,6 +35,7 @@ def main():
         'smokingreviews.org' : 'fake',
         'allthewebsites.org' : 'fake',
         'mayoclinic.com' : 'org',
+        'webmd.com' : 'okcom',
         }
     try:
         urlnet.log.logging = True
