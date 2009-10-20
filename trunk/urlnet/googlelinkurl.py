@@ -111,8 +111,7 @@ class GoogleLinkUrl(RegexQueryUrl):
                         myLog.Write('top level url "' + url + '" rejected by MassageUrl')
                     i = i + 1
                     
-                if self.network.topLevelUrls == None:
-                    self.network.topLevelUrls = self.anchors
+                self.network.topLevelUrls.append( self.anchors )
                     
                 return self.anchors
                     

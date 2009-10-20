@@ -145,7 +145,7 @@ class WindowsLiveTree(SearchEngineTree):
                 Urls = Urls + tenUrls
             if putRoot:
                 self.PutRootUrl(queryURL)
-            self.topLevelUrls = Urls
+            self.topLevelUrls.append( Urls )
             return (queryURL,myUrl,Urls)
         except Exception, e:
             raise Exception, 'in WindowsLiveTree.GetSEResultSet: ' + str(e)
