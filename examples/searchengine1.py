@@ -64,10 +64,10 @@ def main():
 
     
     net = GoogleTree(_maxLevel=1,
-                    _workingDir=workingDir,
-                    _resultLimit=10,
-                    _probabilityVector = probabilityByPositionStopSmokingClicks,
-                    _probabilityVectorGenerator = vectorGenerator)
+        _workingDir=workingDir,
+        _resultLimit=10,
+        _probabilityVector = probabilityByPositionStopSmokingClicks,
+        _probabilityVectorGenerator = vectorGenerator)
                     
     
     ignorableText = \

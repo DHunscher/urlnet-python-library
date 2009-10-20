@@ -646,6 +646,8 @@ class UrlTree(Object):
                 except Exception, e:
                     raise Exception, 'DomainNetItem constructor failed: '+str(e)
 
+                domainItem.SetProperty('level',level)
+
                 # see if we should set custom properties
                 if self.CustomDomainPropertiesSetter:
                     try:
@@ -775,6 +777,8 @@ class UrlTree(Object):
                 domainItem = DomainNetItem(domainIdx,domain,self)
             except Exception, e:
                 raise Exception, 'DomainNetItem constructor failed: '+str(e)
+
+            domainItem.SetProperty('level',0) # always zero for the root url
             
             # see if we should set custom properties
             if self.CustomDomainPropertiesSetter:
@@ -857,16 +861,45 @@ class UrlTree(Object):
             return params
             
     def RestoreOriginalUrlClass(self):
-        """ look at, and possibly replace or erase, the url we
-                encountered in search
+        """ 
+        restore the Url-derived urlclass set when the instance was
+        constructed.
+
+        Returns the value of self.urlclass before it was changed (the "old"
+        class).
         """
         log = Log('RestoreOriginalUrlClass')
         try:
+            currentClass = self.urlclass
             if self.originalUrlClass != None and self.originalUrlClass != self.urlclass:
                 self.urlclass = self.originalUrlClass
+            return currentClass
         except Exception, e:
             self.SetLastError( 'in RestoreOriginalUrlClass, %s: %s' % (str(type(e)), str(e))  )
-            return params
+            return self.urlclass
+            
+    def SetNewUrlClass(self,newClass):
+        """ 
+        replace the current Url-derived urlclass set with a new class.
+
+        Note: pass the name of the class without trailing parentheses!
+        
+        For example:
+        
+        net.SetNewUrlClass(urlnet.regexqueryurl.RegexQueryUrl)
+        
+        Returns the value of self.urlclass before it was changed (the "old"
+        class).
+        """
+        log = Log('RestoreOriginalUrlClass')
+        try:
+            currentClass = self.urlclass
+            if newClass != self.urlclass:
+                self.urlclass = newClass
+            return currentClass
+        except Exception, e:
+            self.SetLastError( 'in SetNewUrlClass, %s: %s' % (str(type(e)), str(e))  )
+            return self.urlclass
             
     def MassageUrl(self,url,level):
         """ look at, and possibly replace or erase, the url we
@@ -1055,7 +1088,7 @@ class UrlTree(Object):
             item = self.GetUrlNetItemByIndex(idx)
             level = item.GetProperty('level')
             if level == None:
-                log.Write('item without level encountered')
+                log.Write('item without level encountered: %s' % item.GetName())
                 level = 0
             doContinue = functionToMap(item, self, level, args)
             if not doContinue:
@@ -1194,7 +1227,7 @@ class UrlTree(Object):
             item = self.GetDomainByIndex(idx)
             level = item.GetProperty('level')
             if level == None:
-                log.Write('item without level encountered')
+                log.Write('item without level encountered: %s' % item.GetName())
                 level = 0
             doContinue = functionToMap(item, self, level, args)
             if not doContinue:
