@@ -124,7 +124,9 @@ class NCBIUrl(Url):
             search_url = self.base + "esearch.fcgi?" + urlencode(params);
             log.Write('esearch query:'+search_url)
             data = self.RetrieveUrlContent(search_url)
-            log.Write('esearch result:\n'+data)
+            logTheData = self.network.GetProperty('LogESearchRawOutput')
+            if logTheData:
+                log.Write('esearch result:\n'+data)
             fn = self.network.GetProperty('WriteESearchRawOutput')
             if fn:
                 fd = open(fn,'a')
@@ -382,7 +384,9 @@ class NCBIUrl(Url):
             search_url = self.base + "efetch.fcgi?" + urlencoded_params;
             log.Write('eFetch query:'+search_url)
             data = self.RetrieveUrlContent(search_url)
-            log.Write('eFetch result:\n'+data)
+            logTheData = self.network.GetProperty('LogEFetchRawOutput')
+            if logTheData:
+                log.Write('efetch result:\n'+data)
             fn = self.network.GetProperty('WriteEFetchRawOutput')
             if fn:
                 fd = open(fn,'a')
@@ -478,8 +482,9 @@ class NCBIUrl(Url):
                 search_url = self.base + "esummary.fcgi?" + urlencoded_params;
                 log.Write('esummary query:'+search_url)
                 data = self.RetrieveUrlContent(search_url)
-            # wrap this in a try block so we can examine local vars in debug mode when something goes wrong
-            log.Write('eFetch result:\n'+data)
+            logTheData = self.network.GetProperty('LogESummaryRawOutput')
+            if logTheData:
+                log.Write('eSummary result:\n'+data)
             fn = self.network.GetProperty('WriteESummaryRawOutput')
             if fn:
                 fd = open(fn,'a')
@@ -559,6 +564,9 @@ class NCBIUrl(Url):
             log.Write('elink query:'+search_url)
             data = self.RetrieveUrlContent(search_url)
             # stub for the moment
+            logTheData = self.network.GetProperty('LogELinkRawOutput')
+            if logTheData:
+                log.Write('elink data:'+str(data))
             return data
             """
             query_key = re.findall('<QueryKey>(.*)<\/QueryKey>',data,re.S)[0]
