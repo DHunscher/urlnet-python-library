@@ -98,6 +98,13 @@ class GoogleLinkTree(GoogleTree):
             
             # link networks must reverse direction of arcs/edges
             self.SetProperty('reverseArcOrEdgeDirection',True)
+
+            # Google-specific regex patterns
+            self.SetProperty('regexPattern',\
+                ['<h3 class=r><a href=\"(.*?)\"',
+                 '<p><a href=\"(.*?)\"',
+                ]
+                )
         
         except Exception, e:
             self.SetLastError('in GoogleLinkTree.__init__: ' + str(e))
@@ -120,14 +127,18 @@ class GoogleLinkTree(GoogleTree):
         # make sure freeTextQuery is of the form 
         #    'link:someurlwithoutschemeprefix'
         
+        '''    
         if '://' in freeTextQuery:
             freeTextQuery = freeTextQuery[freeTextQuery.index('://')+3:]
-            
+
         if freeTextQuery[0:5] != 'link:':
             freeTextQuery = 'link:' + freeTextQuery
-            
-        query=urlencode({'num' : numResults, 'q': freeTextQuery, 'btnG': 'Search' })
+        '''    
+        query=urlencode({'num' : numResults, 'as_lq': freeTextQuery, \
+                             'btnG': 'Search' })
         query = prefix + query 
+
+        log.Write('query=%s' % query)
         
         return query
             

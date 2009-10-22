@@ -109,6 +109,7 @@ class RegexQueryUrl(Url):
                 then processed using the remaining regex expressions in the list, allowing the caller to apply
                 successively more specific regex expressions to the text.
                 """
+                foundAny = False
                 for regexPattern in regexExprs:
                     results = []
                     for item in items:
@@ -116,10 +117,12 @@ class RegexQueryUrl(Url):
                             results = results + re.findall(regexPattern,item,self.findall_args)
                         else:
                             results = results + re.findall(regexPattern,item)
+                    myLog.Write('regexPattern=%s, results=%s' % (str(regexPattern), str(results)))
                     # only replace items with results if results list is not empty
                     if len(results) > 0:
                         # apply regex patterns to set derived from the list we just obtained
                         items = results
+                        foundAny = True
                         
                 """
                 We may have got more than we needed; see if we need to filter. 
@@ -127,23 +130,26 @@ class RegexQueryUrl(Url):
                 If so, limit the results returned to the number specified as
                 the desired limit in the network constructor.
                 """
-                filtering = self.network.GetProperty('filterToKeep')
-                if filtering:
-                    numResults = self.network.GetProperty('numSearchEngineResults')
-                    
-                    newItems = []
-                    count = 0
-                    for item in items:
-                        if self.network.IgnoreFilteredUrl(item):
-                            pass
-                        else:
-                            newItems.append(item)
-                            count = count + 1
-                            if count == numResults:
-                                break
-                    items = newItems
-                    
-                self.anchors = items
+                if foundAny: # if this is false, items is still [page,]
+                    filtering = self.network.GetProperty('filterToKeep')
+                    if filtering:
+                        numResults = self.network.GetProperty('numSearchEngineResults')
+                        
+                        newItems = []
+                        count = 0
+                        for item in items:
+                            if self.network.IgnoreFilteredUrl(item):
+                                pass
+                            else:
+                                newItems.append(item)
+                                count = count + 1
+                                if count == numResults:
+                                    break
+                        items = newItems
+                        
+                    self.anchors = items
+                else:
+                    self.anchors = [] # items is still [page,]
 
                 for i in range(0,len(self.anchors)):
                     self.anchors[i] = self.anchors[i].strip()
@@ -154,10 +160,13 @@ class RegexQueryUrl(Url):
                 if filename:
                     try:
                         fd = open(filename + '.txt','w')
-                        i = 1
-                        for anchor in self.anchors:
-                            fd.write(str(i) + '\t' + anchor + '\n')
-                            i = i + 1
+                        if len(self.anchors):
+                            i = 1
+                            for anchor in self.anchors:
+                                fd.write(str(i) + '\t' + anchor + '\n')
+                                i = i + 1
+                        else:
+                            fd.write('<nothing found>\n')
                         fd.close()
                     except Exception, inst:
                         self.SetLastError( 'RegexQueryUrl.GetAnchorList' + ' while trying to write to ' + filename + ': ' + str(type(inst)) + '\n' + self.url )
@@ -215,6 +224,7 @@ class RegexQueryUrl(Url):
                     
             except Exception, inst:
                 self.SetLastError( 'RegexQueryUrl.GetAnchorList' + ": " + str(type(inst)) + '\n' + self.url )
+                myLog.Write('RegexQueryUrl.GetAnchorList' + ": " + str(type(inst)) + '\n' + self.url )
                 return []
 
         
