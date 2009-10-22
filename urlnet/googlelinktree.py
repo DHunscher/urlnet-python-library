@@ -156,7 +156,6 @@ class GoogleLinkTree(GoogleTree):
             if currentLevel == 0:
                 putRoot = True
             (queryURL,url,Urls) = self.GetSEResultSet(query=startUrl,putRoot=putRoot)
-            (currentItem, currentIdx, isNewItem) = self.PutUrl(parentItemIdx,startUrl,currentLevel)
             getTitles = self.GetProperty('getTitles')
             if (not currentItem):
                 return False
