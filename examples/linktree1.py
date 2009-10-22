@@ -78,6 +78,7 @@ def main():
                          _sleeptime = SLEEPTIME)
                     
     net.SetIgnorableText(textToIgnore)
+    net.SetProperty('SEQueryFileName','googlelinktree')
     
     # This code can be activated by setting the if condition to true
     # in order to see what query URL was generated and what Google returned.

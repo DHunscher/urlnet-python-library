@@ -56,7 +56,7 @@ class GoogleLinkUrl(RegexQueryUrl):
         self.nextUrlClass = self.network.GetProperty('nextUrlClass')
         if not self.nextUrlClass:
             self.nextUrlClass = GoogleLinkUrl
-            
+    '''        
     def GetAnchorList(self):
         """
         Overriding the same function in the Url class.
@@ -118,7 +118,7 @@ class GoogleLinkUrl(RegexQueryUrl):
             except Exception, inst:
                 self.SetLastError( 'GoogleLinkUrl.GetAnchorList' + ": " + str(type(inst)) + '\n' + self.url )
                 return []
-
+    '''
 
 if __name__ == '__main__':
     pass # unit test specific to this module needed!
