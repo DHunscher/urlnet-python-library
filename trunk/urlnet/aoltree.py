@@ -109,7 +109,7 @@ class AOLTree(SearchEngineTree):
             # If the property is not set, the default Url class will be used.
             self.SetProperty('nextUrlClass',Url)
             # AOL-specific regex pattern
-            self.SetProperty('regexPattern','<span property="f:durl">(.*?)</span>')
+            self.SetProperty('regexPattern','class\=\"find\" target\=\'_blank\' href\=\"(.*?)\"')
             self.SetProperty('findall_args',re.S)
         
         except Exception, e:
@@ -121,59 +121,63 @@ class AOLTree(SearchEngineTree):
         This function is AOL-specific.
         """
         log = Log('AOLTree.FormatSEQuery',freeTextQuery)
-        if args:
-            numResults = int(args)
-        else:
-            numResults = self.GetProperty('numSearchEngineResults')
-        if (not numResults):
-            numResults = 10
-        if str(numResults) not in ('10','20',):
-            raise Exception, \
-                  'Exception in AOLTree.FormatSEQuery: ' \
-                  + "numSearchEngineResults property must be one of '10' or '20'"
-        prefix = 'http://search.aol.com/aol/search?'
-        '''
-        breakdown of AOL Search query as of 10-18-09:
+        try:
+            if args:
+                numResults = int(args)
+            else:
+                numResults = self.GetProperty('numSearchEngineResults')
+            if (not numResults):
+                numResults = 10
+            if str(numResults) not in ('10','20',):
+                raise Exception, \
+                      'Exception in AOLTree.FormatSEQuery: ' \
+                      + "numSearchEngineResults property must be one of '10' or '20'"
+            prefix = 'http://search.aol.com/aol/search?'
+            '''
+            breakdown of AOL Search query as of 10-18-09:
+            
+            http://search.aol.com/aol/search?
+            s_it=advancedSearch&
+            as_q=quit+smoking&
+            count_override=20&
+            btnG=AOL+Search&
+            as_epq=&
+            as_oq=&
+            as_eq=&
+            lr=&
+            as_ft=i&
+            as_filetype=&
+            as_qdr=anytime&
+            as_nlo=&
+            as_nhi=&
+            as_dt=i&
+            ex_as_sitesearch=&
+            as_rights=
+            '''
+            query=urlencode({'s_it' : 'advancedSearch',
+                             'as_q': freeTextQuery,
+                             'count_override' : numResults,
+                             'btnG' : 'AOL+Search',
+                             'as_epq' : '',
+                             'as_oq' : '',
+                             'as_eq' : '',
+                             'lr' : '',
+                             'as_ft' : 'i',
+                             'as_filetype' : '',
+                             'as_qdr' : 'anytime',
+                             'as_nlo' : '',
+                             'as_nhi' : '',
+                             'as_dt' : 'i',
+                             'ex_as_sitesearch' : '',
+                             'as_rights' : '',
+                             })
+            query = prefix + query
+
+            return query
+        except Exception, e:
+                self.SetLastError(str(type(e)) + ': ' + str(e))
+
         
-        http://search.aol.com/aol/search?
-        s_it=advancedSearch&
-        as_q=quit+smoking&
-        count_override=20&
-        btnG=AOL+Search&
-        as_epq=&
-        as_oq=&
-        as_eq=&
-        lr=&
-        as_ft=i&
-        as_filetype=&
-        as_qdr=anytime&
-        as_nlo=&
-        as_nhi=&
-        as_dt=i&
-        ex_as_sitesearch=&
-        as_rights=
-        '''
-        query=urlencode({'s_it' : 'advancedSearch',
-                         'as_q': freeTextQuery,
-                         'count_override' : numResults,
-                         'btnG' : 'AOL+Search',
-                         'as_epq' : '',
-                         'as_oq' : '',
-                         'as_eq' : '',
-                         'lr' : '',
-                         'as_ft' : 'i',
-                         'as_filetype' : '',
-                         'as_qdr' : 'anytime',
-                         'as_nlo' : '',
-                         'as_nhi' : '',
-                         'as_dt' : 'i',
-                         'ex_as_sitesearch' : '',
-                         'as_rights' : '',
-                         })
-        query = prefix + query
-
-        return query
-
 
 def main():
 
