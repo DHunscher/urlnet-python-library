@@ -24,6 +24,12 @@ from urlnet.clickprobabilities import probabilityByPositionStopSmokingClicks as 
 
 from urlnet.regexqueryurl import RegexQueryUrl
 import re
+
+
+# maximum spidering depth...
+MAXLEVEL = 1
+
+
 medlineplusRegexPats = [
     '<ul id="subcatlist">.*</ul>',
     '<span class="categoryname"><a name=".*?</ul>',
@@ -69,7 +75,7 @@ def main(which):
         if goAhead:
             if which == 1:
                 # quit smoking
-                net = HealiaTree(_maxLevel=2,
+                net = HealiaTree(_maxLevel=MAXLEVEL,
                                _workingDir=workingDir,
                                _resultLimit=10,
                                _probabilityVector = probability_by_position,
@@ -91,7 +97,7 @@ def main(which):
 
             elif which == 2:            
                 # stop smoking        
-                net = HealiaTree(_maxLevel=2,
+                net = HealiaTree(_maxLevel=MAXLEVEL,
                                _workingDir=workingDir,
                                _resultLimit=10,
                                _probabilityVector = probability_by_position,
@@ -111,7 +117,7 @@ def main(which):
 
             elif which == 3:
                 # smoking cessation        
-                net = HealiaTree(_maxLevel=2,
+                net = HealiaTree(_maxLevel=MAXLEVEL,
                                _workingDir=workingDir,
                                _resultLimit=10,
                                _probabilityVector = probability_by_position,
@@ -131,7 +137,7 @@ def main(which):
             
             elif which == 4:
                 # quit smoking
-                net = HealiaTree(_maxLevel=2,
+                net = HealiaTree(_maxLevel=MAXLEVEL,
                                _workingDir=workingDir,
                                _resultLimit=10,
                                _probabilityVector = probability_by_position,
@@ -154,7 +160,7 @@ def main(which):
 
             elif which == 5:            
                 # stop smoking        
-                net = HealiaTree(_maxLevel=2,
+                net = HealiaTree(_maxLevel=MAXLEVEL,
                                _workingDir=workingDir,
                                _resultLimit=10,
                                _probabilityVector = probability_by_position,
@@ -175,7 +181,7 @@ def main(which):
 
             elif which == 6:
                 # smoking cessation        
-                net = HealiaTree(_maxLevel=2,
+                net = HealiaTree(_maxLevel=MAXLEVEL,
                                _workingDir=workingDir,
                                _resultLimit=10,
                                _probabilityVector = probability_by_position,

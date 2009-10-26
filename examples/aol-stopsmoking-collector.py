@@ -11,15 +11,26 @@
 # For commercial uses, contact dale.hunscher@thenextroguewave.com #
 #                                                                 #
 ###################################################################
+'''
+This smoking-cessation data collector relies on processQueryForSE, a routine
+in collectorutils.py that implements the details of the current algorithm.
+Because we are testing three synonymous queries, this eliminates the
+need to "cut and paste" the processing algorithm implementation multiple
+times whenever it changes as we refine it.
+'''
 from urlnet.log import Log, logging, altfd
 import sys
 from time import strftime, localtime
 import os
 from urlnet.aoltree import AOLTree
-from urlnet.searchenginetree import computeDescendingStraightLineProbabilityVector,\
-                                    computeEqualProbabilityVector
+from urlnet.searchenginetree \
+    import computeDescendingStraightLineProbabilityVector \
+    as DescendingVector,\
+    computeEqualProbabilityVector as StraightLineVector
 from urlnet.ignoreandtruncate import textToIgnore, textToTruncate
-from urlnet.clickprobabilities import probabilityByPositionStopSmokingClicks as probability_by_position
+from urlnet.clickprobabilities \
+    import probabilityByPositionStopSmokingClicks \
+    as probability_by_position
 
 from urlnet.collectorutils import processQueryForSE
 
@@ -45,8 +56,8 @@ def main(which):
 
     # uncomment one of the vectorGenerator assignments below
     
-    # vectorGenerator = computeEqualProbabilityVector
-    vectorGenerator = computeDescendingStraightLineProbabilityVector
+    # vectorGenerator = StraightLineVector
+    vectorGenerator = DescendingVector
     
     try:
         try:
@@ -65,10 +76,10 @@ def main(which):
         if goAhead:
             if which == 1:
                 # quit smoking
-                goAhead = processQueryForSE(
+                goAhead = processQueryForSE(maxLevel=MAXLEVEL,
                                   workingDir=workingDir,
                                   netclass=AOLTree,
-                                  vectorGenerator=computeDescendingStraightLineProbabilityVector,
+                                  vectorGenerator=vectorGenerator,
                                   clickProbs=probability_by_position,
                                   placeholderURL='http://search.aol.com/',
                                   query='quit smoking',
@@ -76,10 +87,10 @@ def main(which):
 
             elif which == 2:            
                 # stop smoking        
-                goAhead = processQueryForSE(
+                goAhead = processQueryForSE(maxLevel=MAXLEVEL,
                                   workingDir=workingDir,
                                   netclass=AOLTree,
-                                  vectorGenerator=computeDescendingStraightLineProbabilityVector,
+                                  vectorGenerator=vectorGenerator,
                                   clickProbs=probability_by_position,
                                   placeholderURL='http://search.aol.com/',
                                   query='stop smoking',
@@ -87,10 +98,10 @@ def main(which):
 
             elif which == 3:
                 # smoking cessation        
-                goAhead = processQueryForSE(
+                goAhead = processQueryForSE(maxLevel=MAXLEVEL,
                                   workingDir=workingDir,
                                   netclass=AOLTree,
-                                  vectorGenerator=computeDescendingStraightLineProbabilityVector,
+                                  vectorGenerator=vectorGenerator,
                                   clickProbs=probability_by_position,
                                   placeholderURL='http://search.aol.com/',
                                   query='smoking cessation',

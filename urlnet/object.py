@@ -43,6 +43,8 @@ class Object:
         myLog = log.Log('SetLastError')
         #myLog.Write('%s\n' % traceback.format_exc())
         self.lastError = str(e)
+        if e and log.logging:
+            myLog.Write(str(e))
         
         
     def SetProperties(self,properties):
