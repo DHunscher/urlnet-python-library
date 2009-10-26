@@ -40,6 +40,7 @@ mlp_smokingcessation_portal = \
         'http://www.nlm.nih.gov/medlineplus/smokingcessation.html'
 
 def processQueryForSE(
+                    maxLevel,
                     workingDir,
                     netclass,
                     vectorGenerator,
@@ -51,7 +52,7 @@ def processQueryForSE(
                     % (str(netclass), str(placeholderURL), str(query), str(netname)))
     try:
         # quit smoking
-        net = netclass(_maxLevel=1,
+        net = netclass(_maxLevel=maxLevel,
                        _workingDir=workingDir,
                        _resultLimit=10,
                        _probabilityVector = clickProbs,

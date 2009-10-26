@@ -66,6 +66,7 @@ exception in urlnet.log.Write: I/O operation on closed file
 import sys
 import os
 import time
+import traceback
 
 logging = False
 altfd = None
@@ -86,7 +87,19 @@ class Log:
             self.startTime = time.time()
         
              
-
+    def WriteStackTrace(self):
+        '''
+        Call this only within an exception block to get a stack trace.
+        '''
+        try:
+            if altfd:
+                altfd.write('%s\n' % traceback.format_exc())
+                altfd.flush()
+            if not (altfd and file_only):
+                sys.stderr.write('%s\n' % traceback.format_exc())
+        except Exception, e: # in case altfd.write fails...
+            sys.stderr.write('%s\n' % traceback.format_exc())
+        
     def __del__(self):
         global limit, trace
         if trace:
