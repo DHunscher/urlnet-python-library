@@ -218,6 +218,8 @@ class RegexQueryUrl(Url):
                     i = i + 1
                     
                 if self.network.topLevelUrls == [] or self.GetProperty('isRootUrl') != None:
+                    if self.network.topLevelUrls != []:
+                        self.network.topLevelUrls = []
                     self.network.topLevelUrls.append(self.anchors)
                     
                 return self.anchors
