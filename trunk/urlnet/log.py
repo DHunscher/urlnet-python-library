@@ -72,7 +72,10 @@ logging = False
 altfd = None
 limit = 10.0 # must be a float?
 file_only = False
-trace = False # debugging mode is True; change this to False for production
+trace = False # debugging mode is True; change to False for 
+              # better performance in 'production mode'
+stacktrace = False # if True, enables printing of stack traces when 
+                   # Object.SetLastLerror() is envoked.
 
 class Log:
     myName = None
@@ -89,17 +92,29 @@ class Log:
              
     def WriteStackTrace(self):
         '''
-        Call this only within an exception block to get a stack trace.
+        Call this to get a stack trace written to logging output stream.
+        Called automatically from within Object.SetLastError() if
+        log.logging = True and log.traceback = True.
         '''
+        global logging, altfd, file_only
         try:
-            if altfd:
-                altfd.write('%s\n' % traceback.format_exc())
-                altfd.flush()
-            if not (altfd and file_only):
-                sys.stderr.write('%s\n' % traceback.format_exc())
+            
+            if logging:
+                if altfd:
+                    traceback.print_stack(
+                        limit=None,file=altfd)
+                    altfd.flush()
+                if not (altfd and file_only):
+                    traceback.print_stack(
+                        limit=None,file=sys.stderr)
+            
         except Exception, e: # in case altfd.write fails...
-            sys.stderr.write('%s\n' % traceback.format_exc())
-        
+            print 'exception in Log.WriteStackTrace(): %s' % str(e)
+            traceback.print_stack(
+                    limit=None,file=sys.stderr)
+            
+            
+            
     def __del__(self):
         global limit, trace
         if trace:
@@ -123,29 +138,3 @@ class Log:
             except Exception, e:
                 sys.stderr.write('%s: exception in urlnet.log.Write: %s\n' % (time.strftime('%H:%M:%S'),str(e),))
                 
-def x(args):
-    x1 = Log('x',args)
-    time.sleep(limit + 1)
-    x1.Write('b = 5')
-    
-def main():
-    global altfd, logging, file_only
-    workingDir =urlutils.GetConfigValue('workingDir')
-    os.chdir(workingDir)
-    fd = open('log.txt','w',0)
-    altfd = fd
-    logging = True
-    a1 = Log('main','no arguments')
-    a1.Write('\ntesting log.Write\n')
-    try:
-        x('bob')
-    except Exception, e:
-        print str(e)
-    fd.close()
-    altfd = None
-
-if __name__ == "__main__":
-    main()
-    print 'done!'
-    sys.exit(0)
-    

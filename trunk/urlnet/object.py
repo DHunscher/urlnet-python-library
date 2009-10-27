@@ -17,7 +17,7 @@ A generic base class for our objects.
 """
 import sys
 #import traceback
-
+from os.path import join
 import log
 
 #################### the Object class #########################
@@ -40,12 +40,18 @@ class Object:
         self.lastError = None
 
     def SetLastError(self,e):
-        myLog = log.Log('SetLastError')
-        #myLog.Write('%s\n' % traceback.format_exc())
-        self.lastError = str(e)
-        if e and log.logging:
-            myLog.Write(str(e))
-        
+        try:
+            myLog = log.Log('SetLastError')
+            self.lastError = str(e)
+            # if logging, write the last error message to wherever log 
+            # messages are being written.
+            if e and log.logging:
+                myLog.Write(str(e))
+                # if 
+                if log.stacktrace:
+                    myLog.WriteStackTrace()
+        except Exception, e:
+            pass
         
     def SetProperties(self,properties):
         """
@@ -87,12 +93,31 @@ class Object:
     
         
 
-if __name__ == '__main__':
+def testTrace3(x):
+    try:
+        raise Exception, 'hey you!!'
+    except Exception, e:
+        x.SetLastError(str(e))
+
+
+def testTrace2(x):
+    try:
+        testTrace3(x)
+    except Exception, e:
+        x.SetLastError(str(e))
+
+def testTrace(x):
+    try:
+        testTrace2(x)
+    except Exception, e:
+        x.SetLastError(str(e))
+
+def main():
     import log, urlutils
     log.logging = True
     workingDir =urlutils.GetConfigValue('workingDir')
-    log.altfd = open(workingDir+'log.txt','w')
-
+    #log.altfd = open(join(workingDir,'log.txt'),'w')
+    log.stacktrace = True
     myLog = log.Log('main')
     
     x = Object()
@@ -100,8 +125,7 @@ if __name__ == '__main__':
     print x.GetName()
     x.SetName('bob')
     print x.GetName()
-
-    x.SetLastError('hey!!')
+    testTrace(x)
     print x.GetLastError()
     x.ResetLastError()
     print x.GetLastError()
@@ -111,7 +135,10 @@ if __name__ == '__main__':
     print str(x.GetProperty('bar'))
     print x.GetLastError()
     print str(x.GetPropertyNames())
-    log.altfd.close()
-    log.altfd = None
-    
+    #log.altfd.close()
+    #log.altfd = None
+
+
+if __name__ == '__main__':
+    main()
               
