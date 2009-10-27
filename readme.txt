@@ -1,13 +1,11 @@
 URLNET PYTHON LIBRARY README FILE
-VERSION 0.90.01
-13 OCTOBER 2009
+VERSION 0.90.06
+27 OCTOBER 2009
 ==================
 NEWS FLASH
 ==================
-This is an interim update to the release candidate for 0.90, with updates to code only. 
-The documentation is currently out of date with respect to inclusion/exclusion
-checking; the code shown in the manual will work, but contains an extra step
-that is redundant in the updated library.
+This is the final release candidate for 0.90. 
+
 
 0	DEPENDENCIES
 	- Python 2.5 (http://www.python.org/download/releases/2.5/)
@@ -28,7 +26,7 @@ versions.
 Unzip the distribution file to a location of your choice. It will create a 
 tree with the following structure.
 
-urlnet-v0.82
+urlnet-v0.90.06
 	urlnet
 	examples
 	doc
@@ -88,7 +86,7 @@ are described in the manual.
 
 0.90: Many new features added, a few bugs fixed, a bunch of new examples.
 Apologies for the lack of detail, but the user guide covers everything.
-There's too much to list out here in the release notes.
+There's too much to list here in the release notes.
 
 0.82: Added urlutils functions for persisting (saving and loading) networks.
 
