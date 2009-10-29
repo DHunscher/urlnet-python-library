@@ -67,7 +67,7 @@ def main(which):
         myLog = Log('main')
         urlnet.log.logging=True
         #urlnet.log.trace=True
-        urlnet.log.altfd=open('bingtree.log','w')
+        urlnet.log.altfd=open('bingtree.log.txt','w')
     except Exception,e:
         myLog.Write(str(e)+'\n')
         goAhead = False
