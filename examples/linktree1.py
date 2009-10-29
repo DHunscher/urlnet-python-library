@@ -66,25 +66,26 @@ def main():
     except Exception,e:
         myLog.Write(str(e)+'\n')
 
+    '''
     textToIgnore = [
         'compoundthinking.com/blog/index.php?s=dict',
         'compoundthinking.com/blog/index.php/200',
         'compoundthinking.com/blog/index.php/tag',
         ]
-    
+    '''
     net = GoogleLinkTree(_maxLevel=2,
                          _workingDir=workingDir,
                          _resultLimit=20,
                          _sleeptime = SLEEPTIME)
                     
-    net.SetIgnorableText(textToIgnore)
+    #net.SetIgnorableText(textToIgnore)
     net.SetProperty('SEQueryFileName','googlelinktree')
     
     # This code can be activated by setting the if condition to true
     # in order to see what query URL was generated and what Google returned.
     # 
     if False:
-        (queryURL,url,Urls) = net.GetSEResultSet('http://compoundthinking.com/blog/')
+        (queryURL,url,Urls) = net.GetSEResultSet('http://ehealth.johnwsharp.com/')
         print 'url = ' + url
         print 'Google query URL = ' + queryURL
         print 'result set:'
