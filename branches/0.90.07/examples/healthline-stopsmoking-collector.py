@@ -68,7 +68,7 @@ def main(which):
         myLog = Log('main')
         urlnet.log.logging=True
         #urlnet.log.trace=True
-        urlnet.log.altfd=open('healthlinetree.log','w')
+        urlnet.log.altfd=open('healthlinetree.log.txt','w')
     except Exception,e:
         myLog.Write(str(e)+'\n')
         goAhead = False
