@@ -1,10 +1,10 @@
 URLNET PYTHON LIBRARY README FILE
-VERSION 0.90.06
-27 OCTOBER 2009
+VERSION 0.90.07
+29 OCTOBER 2009
 ==================
 NEWS FLASH
 ==================
-This is the final release candidate for 0.90. 
+This is the final release for 0.90, which now becomes the most recent stable version. 
 
 
 0	DEPENDENCIES
