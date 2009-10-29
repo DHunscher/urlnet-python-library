@@ -157,16 +157,18 @@ class GoogleLinkTree(GoogleTree):
                 putRoot = True
             (queryURL,url,Urls) = self.GetSEResultSet(query=startUrl,putRoot=putRoot)
             getTitles = self.GetProperty('getTitles')
+            if not putRoot:
+                (currentItem, currentIdx, isNewItem) = self.PutUrl(parentItemIdx,startUrl,currentLevel)
+            else:
+                currentIdx = 1 # root node
+                currentItem = self.GetUrlNetItemByIndex(currentIdx)
+                isNewItem = True
             if (not currentItem):
                 return False
-            if False: #(self.singleDomain and self.showLinksToOtherDomains and (self.rootDomain != currentDomain)):
-                if isNewItem and getTitles:
-                    # set title for output later
-                    self.SetItemTitleProperty(currentItem)
-                return True 
             if isNewItem and not (currentLevel >= self.maxLevel):
                 return self.BuildUrlForest(Urls,
-                                    level=currentLevel+1,parentBase=startUrl, parentIdx=currentIdx)
+                                    level=currentLevel+1,parentBase=startUrl,
+                                           parentIdx=currentIdx)
             elif isNewItem and getTitles:
                 # get title only; don't need to do it as a separate action if recursing,
                 # because it will be a side effect of getting the child URLs
@@ -231,7 +233,7 @@ def main():
         print Urls
 
     if True:
-        x.BuildUrlTree('http://compoundthinking.com/blog/')
+        x.BuildUrlTree('http://ehealth.johnwsharp.com/')
 
         x.WritePajekFile('GoogleLinkTree-linktree','GoogleLinkTree-linktree')
         x.WriteGuessFile('GoogleLinkTree-linktree_urls')            # url network
