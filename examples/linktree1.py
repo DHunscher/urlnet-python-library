@@ -35,7 +35,9 @@ robot spidering program (heaven forbid!). It will attempt
 to force you to enter a 'captcha' phrase from a graphic,
 which UrlNet is sadly unable to do.  Sleeping 3
 seconds between queries seems to be enough to avoid
-this limitation.
+this limitation. The GoogleLinkTree class will force
+a sleeptime of 2 seconds if its constructor is given a
+smaller value for the _sleeptime argument.
 '''
 SLEEPTIME = 3
 
@@ -76,7 +78,9 @@ def main():
     net = GoogleLinkTree(_maxLevel=2,
                          _workingDir=workingDir,
                          _resultLimit=20,
-                         _sleeptime = SLEEPTIME)
+                         _sleeptime = SLEEPTIME,
+                        _useHostNameForDomainName = True
+                        )
                     
     #net.SetIgnorableText(textToIgnore)
     net.SetProperty('SEQueryFileName','googlelinktree')
@@ -96,7 +100,7 @@ def main():
                 print url
 
     if True:
-        net.BuildUrlTree('http://compoundthinking.com/blog/')
+        net.BuildUrlTree('http://ehealth.johnwsharp.com/')
 
         net.WritePajekFile('GoogleLinkTree-linktree','GoogleLinkTree-linktree')
         net.WriteGuessFile('GoogleLinkTree-linktree_urls')            # url network
