@@ -72,6 +72,11 @@ class GoogleLinkTree(GoogleTree):
             # instances. We need to use a descendant of the Url class
             # for this purpose.
             #
+            
+            if _sleeptime == None or _sleeptime < 2:
+                log.Write('_sleeptime must be >= 2 for GoogleLinkTree class, setting to 2.')
+                _sleeptime = 2
+            
             GoogleTree.__init__(self,
                             _maxLevel=_maxLevel,
                             _singleDomain=_singleDomain, 
