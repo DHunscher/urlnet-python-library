@@ -7,9 +7,6 @@
 
 _*Technorati cosmos network.* Click picture for full-size image in new window._
 
-= Table of Contents =
-
-<wiki:toc max_depth="2" />
 
 = Introduction =
 This code repository is the home of the !UrlNet Python Library for network analysis data collection on the Web.
