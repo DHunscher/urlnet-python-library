@@ -51,10 +51,11 @@ class TwitterUrl(Url):
             log = Log('TwitterUrl ctor',_inboundUrl)
             Url.__init__(self,_inboundUrl=_inboundUrl,_network=_network,_doInit=False)
             self.network = _network
+            
+            # we'll initialize these when we need to retrieve some of the 
+            # user's data
             self.userObject = _userObject
-            if self.userObject == None:
-                self.userObject = self.network.myApi.GetUser(_inboundUrl)
-            self.myUser = self.UserDict(self.userObject)
+            self._myUser = self.DefaultUserDict(_inboundUrl)
             
             # turn off use of cached pages, if it is turned on
             # (which it is by default in descendant classes of UrlTree)
@@ -65,6 +66,14 @@ class TwitterUrl(Url):
             self.SetLastError('%s: %s' % (str(type(e)), str(e)) )
             raise
 
+    def DefaultUserDict(self,name):
+        return  {
+                'user'          : name, 
+                'screenName'    : name, 
+                'id'            : 'not fetched',
+                'userObject'    : None, 
+                }
+        
     def UserDict(self,u):
         return  {
                 'user'          : u.GetName(), 
@@ -74,7 +83,16 @@ class TwitterUrl(Url):
                 }
 
 
-
+    def myUser(self):
+        try:
+            if self.userObject == None:
+                self.userObject = self.network.myApi.GetUser(_inboundUrl)
+                self._myUser = self.UserDict(self.userObject)
+            return self._myUser
+        except Exception, e:
+            print '%s %s' % (str(type(e)), str(e))
+            raise
+            
     #########################################
     ############ high-level functions #######
     #########################################
@@ -87,7 +105,7 @@ class TwitterUrl(Url):
         log = Log('TwitterUrl.GetFriends')
         try:
             friends = []
-            flist = self.network.myApi.GetFriends(self.myUser['id'])
+            flist = self.network.myApi.GetFriends(self.myUser()['id'])
             limit = self.network.GetProperty('TwitterFriendLimit')
             if limit == None:
                 limit = twitterconstants.FRIEND_LIMIT
@@ -108,7 +126,7 @@ class TwitterUrl(Url):
         log = Log('TwitterUrl.GetFollowers')
         try:
             followers = []
-            flist = self.network.myApi.GetFollowers(self.myUser['userObject'])
+            flist = self.network.myApi.GetFollowers(self.myUser()['userObject'])
             limit = self.network.GetProperty('TwitterFollowerLimit')
             if limit == None:
                 limit = twitterconstants.FOLLOWER_LIMIT
