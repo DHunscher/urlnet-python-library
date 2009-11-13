@@ -21,20 +21,29 @@ import urlnet.log
 def main():
     
     urlnet.log.logging = True
+    urlnet.log.traceback = True
+    urlnet.log.trace = True
+    urlnet.log.file_only = True
     try:
+        urlnet.log.altfd = open('twitterpeople1.log.txt','w')
         
         net = TwitterPeopleTree( \
-            _twitterUser        = 'YourName',
-            _twitterPassword    = 'YourPassword',
-            _twitterApi         = urlnet.twitterconstants.PEOPLE,
-            _maxLevel           = 1 
+            _twitterUser        = 'DHunscher',
+            _twitterPassword    = 'OffWorld',
+            _twitterApi         = urlnet.twitterconstants.FRIENDS,
+            _maxLevel           = 2 
             )
-        if net.BuildUrlTree('DHunscher'):
-            net.WritePajekNetworkFile('twitter1','twitter1')
+        #if net.BuildUrlTree('DHunscher'):
+        #    net.WritePajekNetworkFile('twitter1','twitter1')
+        net.BuildUrlTree('DHunscher')
+        net.WritePajekNetworkFile('twitter1','twitter1')
         
         
     except Exception, e:
         print str(e)
+    if urlnet.log.altfd:
+        close(urlnet.log.altfd)
+        
 
 if __name__ == '__main__':
     main()
