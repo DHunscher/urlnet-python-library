@@ -48,6 +48,8 @@ from urllib2 import urlopen, Request
 from htmllib import HTMLParser
 from formatter import NullFormatter, AbstractFormatter, DumbWriter
 import StringIO
+import gzip
+import zlib
 import re
 
 # URI schemes we will try to follow
@@ -713,7 +715,7 @@ def GetHttpPage(network,theUrl):
         # get text of page here so we can check it.
         user_agent = network.GetProperty('user-agent')
         req_headers = network.GetProperty('request-headers')
-        if req_headers == None:
+        if req_headereqrs == None:
             req_headers = {}
         if 'User-Agent' not in req_headers.keys():
             if user_agent:
@@ -721,15 +723,33 @@ def GetHttpPage(network,theUrl):
             else:
                 # req_headers['User-Agent'] = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT;'
                 req_headers['User-Agent'] = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT; UrlNet Python Library;'
-                
-        if req_headers:
-            req = Request(url=theUrl,headers=req_headers)
-        else:
-            req = Request(theUrl)
+        # accept compressed content if available
+        try:
+            accept = req_headers['Accept-Encoding']
+            if accept[-1] != ',':
+                accept = accept + ','
+            accept = accept + 'gzip,deflate'
+            req_headers['Accept-Encoding'] = accept
+        except:
+            req_headers['Accept-Encoding'] = 'gzip,deflate'
+            
+        req = Request(url=theUrl,headers=req_headers)
         last_query = theUrl
         try:
             urlobject = urlopen(req)
+            zipped = False
+            encoding = urlobject.info().get("Content-Encoding")
+            if encoding in ('gzip', 'x-gzip', 'deflate'):
+                zipped = True
             page = urlobject.read()
+            if zipped:
+                log.Write('%s was compressed, size=%d' % (theUrl,len(page)))
+                if encoding == 'deflate':
+                    data = StringIO.StringIO(zlib.decompress(content))
+                else:
+                    data = gzip.GzipFile('', 'rb', 9, StringIO.StringIO(content))
+                page = data.read()
+                log.Write('decompressed size: %d' % (len(page)))
         except Exception, e:
             log.Write('on %s, exception: %s' % (str(theUrl), str(e)))
             network.lastPage = None
