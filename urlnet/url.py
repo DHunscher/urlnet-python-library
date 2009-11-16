@@ -250,9 +250,9 @@ class Url(Object):
                     if zipped:
                         log.Write('%s was compressed, size=%d' % (theUrl,len(page)))
                         if encoding == 'deflate':
-                            data = StringIO.StringIO(zlib.decompress(content))
+                            data = StringIO.StringIO(zlib.decompress(page))
                         else:
-                            data = gzip.GzipFile('', 'rb', 9, StringIO.StringIO(content))
+                            data = gzip.GzipFile('', 'rb', 9, StringIO.StringIO(page))
                         page = data.read()
                         log.Write('decompressed size: %d' % (len(page)))
                     self.thePage = page
