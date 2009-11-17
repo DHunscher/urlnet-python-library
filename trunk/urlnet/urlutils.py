@@ -726,12 +726,13 @@ def GetHttpPage(network,theUrl):
         # accept compressed content if available
         try:
             accept = req_headers['Accept-Encoding']
-            if accept[-1] != ',':
-                accept = accept + ','
-            accept = accept + 'gzip,deflate'
-            req_headers['Accept-Encoding'] = accept
+            if 'gzip' not in accept.lower():
+                if accept[-1] != ',':
+                    accept = accept + ','
+                accept = accept + 'gzip,'
+                req_headers['Accept-Encoding'] = accept
         except:
-            req_headers['Accept-Encoding'] = 'gzip,deflate'
+            req_headers['Accept-Encoding'] = 'gzip'
             
         req = Request(url=theUrl,headers=req_headers)
         last_query = theUrl
@@ -739,15 +740,12 @@ def GetHttpPage(network,theUrl):
             urlobject = urlopen(req)
             zipped = False
             encoding = urlobject.info().get("Content-Encoding")
-            if encoding in ('gzip', 'x-gzip', 'deflate'):
+            if encoding in ('gzip', 'x-gzip'):
                 zipped = True
             page = urlobject.read()
             if zipped:
                 log.Write('%s was compressed, size=%d' % (theUrl,len(page)))
-                if encoding == 'deflate':
-                    data = StringIO.StringIO(zlib.decompress(page))
-                else:
-                    data = gzip.GzipFile('', 'rb', 9, StringIO.StringIO(page))
+                data = gzip.GzipFile('', 'rb', 9, StringIO.StringIO(page))
                 page = data.read()
                 log.Write('decompressed size: %d' % (len(page)))
         except Exception, e:
