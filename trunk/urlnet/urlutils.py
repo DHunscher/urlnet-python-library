@@ -715,7 +715,7 @@ def GetHttpPage(network,theUrl):
         # get text of page here so we can check it.
         user_agent = network.GetProperty('user-agent')
         req_headers = network.GetProperty('request-headers')
-        if req_headereqrs == None:
+        if req_headers == None:
             req_headers = {}
         if 'User-Agent' not in req_headers.keys():
             if user_agent:
