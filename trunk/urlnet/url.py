@@ -235,24 +235,21 @@ class Url(Object):
                         accept = self.req_headers['Accept-Encoding']
                         if accept[-1] != ',':
                             accept = accept + ','
-                        accept = accept + 'gzip,deflate'
+                        accept = accept + 'gzip'
                         self.req_headers['Accept-Encoding'] = accept
                     except:
-                        self.req_headers['Accept-Encoding'] = 'gzip,deflate'
+                        self.req_headers['Accept-Encoding'] = 'gzip'
                     req = Request(url=theUrl,headers=self.req_headers)
                     urlobject = urlopen(req)
                     zipped = False
                     encoding = urlobject.info().get("Content-Encoding")
-                    if encoding in ('gzip', 'x-gzip', 'deflate'):
+                    if encoding in ('gzip', 'x-gzip'):
                         zipped = True
                     page = urlobject.read()
                     urlobject.close()
                     if zipped:
                         log.Write('%s was compressed, size=%d' % (theUrl,len(page)))
-                        if encoding == 'deflate':
-                            data = StringIO.StringIO(zlib.decompress(page))
-                        else:
-                            data = gzip.GzipFile('', 'rb', 9, StringIO.StringIO(page))
+                        data = gzip.GzipFile('', 'rb', 9, StringIO.StringIO(page))
                         page = data.read()
                         log.Write('decompressed size: %d' % (len(page)))
                     self.thePage = page
