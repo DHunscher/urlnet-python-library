@@ -48,6 +48,8 @@ from urllib2 import urlopen, Request
 from htmllib import HTMLParser
 from formatter import NullFormatter, AbstractFormatter, DumbWriter
 import StringIO
+import gzip
+import zlib
 import re
 
 # URI schemes we will try to follow
@@ -721,15 +723,31 @@ def GetHttpPage(network,theUrl):
             else:
                 # req_headers['User-Agent'] = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT;'
                 req_headers['User-Agent'] = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT; UrlNet Python Library;'
-                
-        if req_headers:
-            req = Request(url=theUrl,headers=req_headers)
-        else:
-            req = Request(theUrl)
+        # accept compressed content if available
+        try:
+            accept = req_headers['Accept-Encoding']
+            if 'gzip' not in accept.lower():
+                if accept[-1] != ',':
+                    accept = accept + ','
+                accept = accept + 'gzip,'
+                req_headers['Accept-Encoding'] = accept
+        except:
+            req_headers['Accept-Encoding'] = 'gzip'
+            
+        req = Request(url=theUrl,headers=req_headers)
         last_query = theUrl
         try:
             urlobject = urlopen(req)
+            zipped = False
+            encoding = urlobject.info().get("Content-Encoding")
+            if encoding in ('gzip', 'x-gzip'):
+                zipped = True
             page = urlobject.read()
+            if zipped:
+                log.Write('%s was compressed, size=%d' % (theUrl,len(page)))
+                data = gzip.GzipFile('', 'rb', 9, StringIO.StringIO(page))
+                page = data.read()
+                log.Write('decompressed size: %d' % (len(page)))
         except Exception, e:
             log.Write('on %s, exception: %s' % (str(theUrl), str(e)))
             network.lastPage = None
@@ -894,3 +912,4 @@ if __name__ == '__main__':
 
     sys.exit(0)
     
+

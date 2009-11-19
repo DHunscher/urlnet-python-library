@@ -27,6 +27,8 @@ from formatter import NullFormatter, AbstractFormatter, DumbWriter
 from object import Object
 from log import Log
 import StringIO
+import gzip
+import zlib
 import re
 
 # module-level function
@@ -215,28 +217,42 @@ class Url(Object):
         if theUrl == None:
             theUrl = self.url
             
+        self.last_query = theUrl
+        # leave early if all we are told to do is to get the title
+        # and the getTitles property is missing or False
+        getTitles = self.network.GetProperty('getTitles')
+        if (getTitles == False or getTitles == None) and getTitleOnly:
+            return theUrl
+        # go get the page
         try:
             tries = 0
             originalUrl=theUrl
             while(1):
-                if self.req_headers:
+                # accept compressed content if available
+                page = self.thePage
+                if page == None:
+                    try:
+                        accept = self.req_headers['Accept-Encoding']
+                        if accept[-1] != ',':
+                            accept = accept + ','
+                        accept = accept + 'gzip'
+                        self.req_headers['Accept-Encoding'] = accept
+                    except:
+                        self.req_headers['Accept-Encoding'] = 'gzip'
                     req = Request(url=theUrl,headers=self.req_headers)
-                else:
-                    req = Request(theUrl)
-                self.last_query = theUrl
-                urlobject = urlopen(req)
-                getTitles = self.network.GetProperty('getTitles')
-                if (getTitles == False or getTitles == None) and getTitleOnly:
-                    return theUrl
-                if getTitleOnly and getTitles:
-                    # don't get the whole thing, just enough to be sure to get the title,
-                    # if there is a <title> element in the <head> element.
-                    page = self.thePage
-                    if page == None:
-                        page = urlobject.read(2000)
-                else:
+                    urlobject = urlopen(req)
+                    zipped = False
+                    encoding = urlobject.info().get("Content-Encoding")
+                    if encoding in ('gzip', 'x-gzip'):
+                        zipped = True
                     page = urlobject.read()
-                self.thePage = page
+                    urlobject.close()
+                    if zipped:
+                        log.Write('%s was compressed, size=%d' % (theUrl,len(page)))
+                        data = gzip.GzipFile('', 'rb', 9, StringIO.StringIO(page))
+                        page = data.read()
+                        log.Write('decompressed size: %d' % (len(page)))
+                    self.thePage = page
                 # handle Javascript redirects, which are not handled by the httplib2 mechanism
                 # This is a KLUDGE!!!
                 if 'redirect' in page.lower():
@@ -256,7 +272,6 @@ class Url(Object):
                         break
                 else:
                     break
-            urlobject.close()
             self.last_successful_query = theUrl
             if self.sleeptime:
                 time.sleep(float(self.sleeptime))
