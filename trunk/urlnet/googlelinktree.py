@@ -73,7 +73,9 @@ class GoogleLinkTree(GoogleTree):
             # for this purpose.
             #
             
-            if _sleeptime == None or _sleeptime < 2:
+            if type(sleepTime) == list or type(sleeptime) == tuple:
+                pass
+            elif _sleeptime == None or _sleeptime < 2:
                 log.Write('_sleeptime must be >= 2 for GoogleLinkTree class, setting to 2.')
                 _sleeptime = 2
             

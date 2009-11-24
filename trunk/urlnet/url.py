@@ -25,10 +25,10 @@ from urlparse import *
 from htmllib import HTMLParser
 from formatter import NullFormatter, AbstractFormatter, DumbWriter
 from object import Object
+from urlutils import Sleep
 from log import Log
 import StringIO
 import gzip
-import zlib
 import re
 
 # module-level function
@@ -121,14 +121,6 @@ class Url(Object):
             self.network.originalUrlClass = self.network.urlclass
             
         self.sleeptime = self.network.GetProperty('sleeptime')
-        if self.sleeptime:
-            try:
-                self.sleeptime = float(self.sleeptime)
-            except Exception, e:
-                log.Write('for self.sleeptime in Url constructor, can\'t convert "' + str(self.sleeptime) + '" into float')
-                self.sleeptime = 0.0
-        else:
-            self.sleeptime = 0.0
         self.user_agent = self.network.GetProperty('user-agent')
         self.req_headers = self.network.GetProperty('request-headers')
         self.last_query = None
@@ -248,10 +240,10 @@ class Url(Object):
                     page = urlobject.read()
                     urlobject.close()
                     if zipped:
-                        log.Write('%s was compressed, size=%d' % (theUrl,len(page)))
+                        #log.Write('%s was compressed, size=%d' % (theUrl,len(page)))
                         data = gzip.GzipFile('', 'rb', 9, StringIO.StringIO(page))
                         page = data.read()
-                        log.Write('decompressed size: %d' % (len(page)))
+                        #log.Write('decompressed size: %d' % (len(page)))
                     self.thePage = page
                 # handle Javascript redirects, which are not handled by the httplib2 mechanism
                 # This is a KLUDGE!!!
@@ -273,8 +265,7 @@ class Url(Object):
                 else:
                     break
             self.last_successful_query = theUrl
-            if self.sleeptime:
-                time.sleep(float(self.sleeptime))
+            Sleep(self.network)
             # if the page has a title, get it now
             # set a property for the title to either the title (if any),
             #   or the url if no title

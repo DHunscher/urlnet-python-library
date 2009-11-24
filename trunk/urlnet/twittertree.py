@@ -91,7 +91,9 @@ class TwitterTree(UrlTree):
             #
 
             # twitter requires at least 1 seconds sleep time between requests
-            if _sleeptime == None or _sleeptime < 1:
+            if type(_sleepTime) == list or type(_sleeptime) == tuple:
+                pass
+            elif _sleeptime == None or _sleeptime < 1:
                 _sleeptime = 1
                 
             urlClass = _urlclass

@@ -94,7 +94,9 @@ class NCBITree(UrlTree):
             #
 
             # NCBI requires at least 3 seconds sleep time between requests
-            if _sleeptime == None or _sleeptime < 3:
+            if type(_sleepTime) == list or type(_sleeptime) == tuple:
+                pass
+            elif _sleeptime == None or _sleeptime < 3:
                 _sleeptime = 3
 
                 
