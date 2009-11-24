@@ -147,27 +147,28 @@ class GoogleLinkTree(GoogleTree):
         
         return query
             
-
+    
     def BuildUrlTree(self,startUrl,parentItemIdx=None,currentLevel=None,alreadyMassaged=False):
-        """
-        Override parent class in order to format the query.
-
-        """
+        #Override parent class in order to format the query.
         log = Log('GoogleLinkTree.BuildUrlTree','startUrl=' + str(startUrl) + '\nparent idx=' + str(parentItemIdx) + '\nlevel=' + str(currentLevel))
         try:
             if currentLevel == None:
                 currentLevel = 0
             putRoot = False
-            if currentLevel == 0:
+            if currentLevel == 0 and self.masterItemIdx == 0:
                 putRoot = True
+                self.currentRun = 1
+            elif currentLevel == 0:
+                self.currentRun += 1
+            if currentLevel == 0: # added for debugging
+                pass
             (queryURL,url,Urls) = self.GetSEResultSet(query=startUrl,putRoot=putRoot)
             getTitles = self.GetProperty('getTitles')
-            if not putRoot:
-                (currentItem, currentIdx, isNewItem) = self.PutUrl(parentItemIdx,startUrl,currentLevel)
-            else:
-                currentIdx = 1 # root node
+            if putRoot:
+                currentIdx = 1
                 currentItem = self.GetUrlNetItemByIndex(currentIdx)
                 isNewItem = True
+            (currentItem, currentIdx, isNewItem) = self.PutUrl(parentItemIdx,startUrl,currentLevel)
             if (not currentItem):
                 return False
             if isNewItem and not (currentLevel >= self.maxLevel):
@@ -183,7 +184,8 @@ class GoogleLinkTree(GoogleTree):
                 return True
         except Exception, e:
             raise Exception, 'in GoogleLinkTree.BuildUrlTree: ' + str(e)
-
+    
+    
     def BuildUrlTreeWithPlaceholderRoot(self,rootPlaceholder,query):
         """
         This function is not applicable to link networks.
@@ -196,6 +198,7 @@ class GoogleLinkTree(GoogleTree):
         This function is not applicable to link networks.
         """
         raise Exception, 'in GoogleLinkTree.BuildUrlTreeWithPlaceholderRoot: Function not implemented for this class'
+
 
 
         
