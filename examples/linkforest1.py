@@ -38,8 +38,12 @@ seconds between queries seems to be enough to avoid
 this limitation. The GoogleLinkTree class will force
 a sleeptime of 2 seconds if its constructor is given a
 smaller value for the _sleeptime argument.
+
+Here we are taking advantage of the ability to set a
+range for sleeptime, which will make us look a bit 
+less robotic...
 '''
-SLEEPTIME = 3
+SLEEPTIME = (5,9)
 
 def main():
     # dir to write to
