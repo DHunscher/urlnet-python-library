@@ -23,6 +23,8 @@ import os
 import urllib
 import socket
 
+from random import random
+
 # for GetTimestampString and check for incl/excl
 from time import strftime, localtime, sleep
 
@@ -49,7 +51,6 @@ from htmllib import HTMLParser
 from formatter import NullFormatter, AbstractFormatter, DumbWriter
 import StringIO
 import gzip
-import zlib
 import re
 
 # URI schemes we will try to follow
@@ -706,12 +707,6 @@ def GetHttpPage(network,theUrl):
         network.lastPage = None
         network.earlyReadSucceeded = True
         
-        sleeptime = network.GetProperty('sleeptime')
-        try:
-            sleeptime = float(sleeptime)
-        except Exception, e:
-            log.Write('while converting sleeptime "%s" to float, exception: %s' % (str(sleeptime),str(e)) )
-            sleeptime = 1.0
         # get text of page here so we can check it.
         user_agent = network.GetProperty('user-agent')
         req_headers = network.GetProperty('request-headers')
@@ -744,10 +739,10 @@ def GetHttpPage(network,theUrl):
                 zipped = True
             page = urlobject.read()
             if zipped:
-                log.Write('%s was compressed, size=%d' % (theUrl,len(page)))
+                #log.Write('%s was compressed, size=%d' % (theUrl,len(page)))
                 data = gzip.GzipFile('', 'rb', 9, StringIO.StringIO(page))
                 page = data.read()
-                log.Write('decompressed size: %d' % (len(page)))
+                #log.Write('decompressed size: %d' % (len(page)))
         except Exception, e:
             log.Write('on %s, exception: %s' % (str(theUrl), str(e)))
             network.lastPage = None
@@ -758,8 +753,7 @@ def GetHttpPage(network,theUrl):
         network.earlyReadSucceeded = True
     
         # be polite!
-        if sleeptime:
-            sleep(sleeptime)
+        Sleep(network)
         return page
     
     except Exception, inst:
@@ -769,6 +763,43 @@ def GetHttpPage(network,theUrl):
         #print theError
         return None
 
+def Sleep(network):
+    try:
+        sleeptime = network.GetProperty('sleeptime')
+        if sleeptime == None:
+            return
+        sleepType = type(sleeptime)
+        if sleepType == list or sleepType == tuple:
+            # for example, [3,5] or (3,5) for sleep time between three
+            # and five seconds
+            try:
+                # must be a list or tuple with two numbers, min and max
+                mn = min(sleeptime[0],sleeptime[1])
+                mx = max(sleeptime[0],sleeptime[1])
+                sleeptime = mx-(random()*(mx-mn))
+            except Exception, e:
+                log.Write('while converting sleeptime range ' + \
+                          '"%s" to float, exception %s: %s' \
+                          % (str(sleeptime),str(type(e)),str(e)) )
+                sleeptime = 1.0
+        else:
+            # string or float or int
+            try:
+                sleeptime = float(sleeptime)
+            except Exception, e:
+                log.Write('while converting sleeptime ' + \
+                          '"%s" to float, exception %s: %s' \
+                          % (str(sleeptime),str(type(e)),str(e)) )
+                sleeptime = 1.0
+        print str(sleeptime)
+        if sleeptime > 0.0:
+            sleep(sleeptime)
+    except Exception, inst:
+        theError = 'Sleep: ' + str(type(inst)) + '\n' + str(inst)
+        network.SetLastError ( theError )
+        raise Exception, theError
+
+#### default data-driven inclusion/exclusion criteria checker ####
 
 def CheckInclusionExclusionCriteria(network,theUrl,level):
     '''
@@ -903,13 +934,19 @@ def CheckInclusionExclusionCriteria(network,theUrl,level):
 
 if __name__ == '__main__':
 
+    
     # dir to write to
     workingDir =GetConfigValue('workingDir')
     name = """alice
     bob"""
     name = RemoveNonPrintableChars(name)
     print name
+    net = Object()
+    net.SetProperty('sleeptime',(5,11))
+    print 'starting to sleep...'
+    Sleep(net)
+    print 'done sleeping'
 
-    sys.exit(0)
+
     
 
